@@ -22,11 +22,7 @@ class Settings(BaseSettings):
     match_verified_evidence_weight: float = 0.05
     log_level: str = "INFO"
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @field_validator("cors_origins", mode="before")
     @classmethod

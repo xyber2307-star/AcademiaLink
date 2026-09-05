@@ -1,7 +1,12 @@
 import pytest
 from fastapi import HTTPException
 
-from app.core.dependencies import get_authenticated_user, require_same_user
+from app.core.dependencies import (
+    get_authenticated_user,
+    require_role,
+    require_same_user,
+)
+from app.core.security import Role
 from app.firebase import auth as firebase_auth
 
 
@@ -77,14 +82,95 @@ def test_authenticated_user_uses_token_uid_and_loads_profile(monkeypatch):
     )
     monkeypatch.setattr(
         "app.core.dependencies.get_document",
-        lambda collection, document_id: {"userId": document_id, "name": "A User"},
+        lambda collection, document_id: {
+            "userId": document_id,
+            "name": "A User",
+            "role": "student",
+        },
     )
 
     user = get_authenticated_user("Bearer firebase-token")
 
     assert user.user_id == "firebase-user-123"
     assert user.email == "a@example.com"
-    assert user.profile == {"userId": "firebase-user-123", "name": "A User"}
+    assert user.role is Role.STUDENT
+    assert user.profile == {
+        "userId": "firebase-user-123",
+        "name": "A User",
+        "role": "student",
+    }
+
+
+def test_role_is_not_taken_from_client_role_header(monkeypatch):
+    monkeypatch.setattr(
+        "app.core.dependencies.verify_id_token",
+        lambda token, check_revoked=True: {"uid": "student-123", "role": "student"},
+    )
+    monkeypatch.setattr(
+        "app.core.dependencies.get_document",
+        lambda collection, document_id: {"userId": document_id, "role": "student"},
+    )
+
+    user = get_authenticated_user("Bearer firebase-token")
+
+    assert user.role is Role.STUDENT
+
+
+def test_valid_student_authorization(monkeypatch):
+    monkeypatch.setattr(
+        "app.core.dependencies.get_authenticated_user",
+        lambda *args, **kwargs: type("User", (), {"user_id": "student-123", "role": Role.STUDENT})(),
+    )
+
+    dependency = require_role(Role.STUDENT)
+    user = dependency()
+
+    assert user.user_id == "student-123"
+    assert user.role is Role.STUDENT
+
+
+def test_unauthorized_route_rejects_student_for_recruiter_action(monkeypatch):
+    student = type("User", (), {"user_id": "student-123", "role": Role.STUDENT})()
+    monkeypatch.setattr("app.core.dependencies.get_authenticated_user", lambda *args, **kwargs: student)
+
+    dependency = require_role(Role.RECRUITER)
+
+    with pytest.raises(HTTPException) as exc:
+        dependency()
+
+    assert exc.value.status_code == 403
+
+
+def test_invalid_backend_role_rejected(monkeypatch):
+    monkeypatch.setattr(
+        "app.core.dependencies.get_authenticated_user",
+        lambda *args, **kwargs: type("User", (), {"user_id": "u1", "role": None})(),
+    )
+
+    dependency = require_role(Role.STUDENT)
+
+    with pytest.raises(HTTPException) as exc:
+        dependency()
+
+    assert exc.value.status_code == 403
+    assert "no assigned role" in exc.value.detail
+
+
+def test_invalid_role_value_in_backend_profile_is_rejected(monkeypatch):
+    monkeypatch.setattr(
+        "app.core.dependencies.verify_id_token",
+        lambda token, check_revoked=True: {"uid": "u1", "role": "admin"},
+    )
+    monkeypatch.setattr(
+        "app.core.dependencies.get_document",
+        lambda collection, document_id: {"userId": document_id, "role": "not-a-role"},
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        get_authenticated_user("Bearer firebase-token")
+
+    assert exc.value.status_code == 403
+    assert "invalid role" in exc.value.detail
 
 
 def test_authenticated_user_rejects_conflicting_frontend_user_id(monkeypatch):
@@ -99,10 +185,18 @@ def test_authenticated_user_rejects_conflicting_frontend_user_id(monkeypatch):
     assert exc.value.status_code == 403
 
 
-def test_require_same_user_rejects_identity_mismatch():
-    authenticated = type("User", (), {"user_id": "firebase-user-123"})()
+def test_cross_user_access_is_rejected():
+    authenticated = type("User", (), {"user_id": "student-a", "role": Role.STUDENT})()
 
     with pytest.raises(HTTPException) as exc:
-        require_same_user("different-user", authenticated)
+        require_same_user("student-b", authenticated)
 
     assert exc.value.status_code == 403
+
+
+def test_same_user_access_is_allowed():
+    authenticated = type("User", (), {"user_id": "student-a", "role": Role.STUDENT})()
+
+    result = require_same_user("student-a", authenticated)
+
+    assert result is authenticated

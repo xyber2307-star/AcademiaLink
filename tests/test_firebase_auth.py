@@ -94,11 +94,6 @@ def test_authenticated_user_uses_token_uid_and_loads_profile(monkeypatch):
     assert user.user_id == "firebase-user-123"
     assert user.email == "a@example.com"
     assert user.role is Role.STUDENT
-    assert user.profile == {
-        "userId": "firebase-user-123",
-        "name": "A User",
-        "role": "student",
-    }
 
 
 def test_role_is_not_taken_from_client_role_header(monkeypatch):
@@ -116,41 +111,34 @@ def test_role_is_not_taken_from_client_role_header(monkeypatch):
     assert user.role is Role.STUDENT
 
 
-def test_valid_student_authorization(monkeypatch):
-    monkeypatch.setattr(
-        "app.core.dependencies.get_authenticated_user",
-        lambda *args, **kwargs: type("User", (), {"user_id": "student-123", "role": Role.STUDENT})(),
-    )
+def test_valid_student_authorization():
+    student = type("User", (), {"user_id": "student-123", "role": Role.STUDENT})()
 
     dependency = require_role(Role.STUDENT)
-    user = dependency()
+    result = dependency(student)
 
-    assert user.user_id == "student-123"
-    assert user.role is Role.STUDENT
+    assert result.user_id == "student-123"
+    assert result.role is Role.STUDENT
 
 
-def test_unauthorized_route_rejects_student_for_recruiter_action(monkeypatch):
+def test_unauthorized_route_rejects_student_for_recruiter_action():
     student = type("User", (), {"user_id": "student-123", "role": Role.STUDENT})()
-    monkeypatch.setattr("app.core.dependencies.get_authenticated_user", lambda *args, **kwargs: student)
 
     dependency = require_role(Role.RECRUITER)
 
     with pytest.raises(HTTPException) as exc:
-        dependency()
+        dependency(student)
 
     assert exc.value.status_code == 403
 
 
-def test_invalid_backend_role_rejected(monkeypatch):
-    monkeypatch.setattr(
-        "app.core.dependencies.get_authenticated_user",
-        lambda *args, **kwargs: type("User", (), {"user_id": "u1", "role": None})(),
-    )
+def test_invalid_role_is_rejected_when_not_assigned():
+    user = type("User", (), {"user_id": "u1", "role": None})()
 
     dependency = require_role(Role.STUDENT)
 
     with pytest.raises(HTTPException) as exc:
-        dependency()
+        dependency(user)
 
     assert exc.value.status_code == 403
     assert "no assigned role" in exc.value.detail

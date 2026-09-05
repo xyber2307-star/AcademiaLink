@@ -5,10 +5,6 @@ from app.core.dependencies import get_authenticated_user, require_same_user
 from app.firebase import auth as firebase_auth
 
 
-class DummySettings:
-    pass
-
-
 def test_extract_bearer_token_requires_header():
     with pytest.raises(firebase_auth.FirebaseAuthenticationError, match="Bearer authentication required"):
         firebase_auth.extract_bearer_token(None)
@@ -35,12 +31,43 @@ def test_verify_id_token_rejects_expired_token(monkeypatch):
         firebase_auth.verify_id_token("expired-token")
 
 
+def test_verify_id_token_rejects_invalid_token(monkeypatch):
+    def fake_verify(*args, **kwargs):
+        raise firebase_auth.auth.InvalidIdTokenError("invalid")
+
+    monkeypatch.setattr(firebase_auth.auth, "verify_id_token", fake_verify)
+    monkeypatch.setattr(firebase_auth, "get_firebase_app", lambda: object())
+
+    with pytest.raises(firebase_auth.FirebaseAuthenticationError, match="Invalid Firebase ID token"):
+        firebase_auth.verify_id_token("invalid-token")
+
+
 def test_verify_id_token_requires_uid(monkeypatch):
     monkeypatch.setattr(firebase_auth.auth, "verify_id_token", lambda *args, **kwargs: {"email": "a@example.com"})
     monkeypatch.setattr(firebase_auth, "get_firebase_app", lambda: object())
 
     with pytest.raises(firebase_auth.FirebaseAuthenticationError, match="valid UID"):
         firebase_auth.verify_id_token("valid-looking-token")
+
+
+def test_authenticated_user_rejects_missing_authorization():
+    with pytest.raises(HTTPException) as exc:
+        get_authenticated_user(None)
+
+    assert exc.value.status_code == 401
+    assert exc.value.headers == {"WWW-Authenticate": "Bearer"}
+
+
+def test_authenticated_user_maps_invalid_token_to_401(monkeypatch):
+    def fail_verification(*args, **kwargs):
+        raise firebase_auth.FirebaseAuthenticationError("Invalid Firebase ID token")
+
+    monkeypatch.setattr("app.core.dependencies.verify_id_token", fail_verification)
+
+    with pytest.raises(HTTPException) as exc:
+        get_authenticated_user("Bearer invalid-token")
+
+    assert exc.value.status_code == 401
 
 
 def test_authenticated_user_uses_token_uid_and_loads_profile(monkeypatch):

@@ -1,23 +1,43 @@
-import json
+"""Backward-compatible adapters over the isolated Firebase integration layer.
+
+New code should import from ``app.firebase``. These adapters remain available so
+existing dependencies do not need a breaking change while the integration is migrated.
+"""
+
 from app.core.config import Settings
-from app.core.security import CurrentUser,Role
+from app.core.security import CurrentUser, Role
+from app.firebase.auth import verify_id_token
+from app.firebase.storage import build_storage_path
+
+
 class FirebaseAuthAdapter:
- def __init__(self,s:Settings): self.s=s; self.auth=None
- def verify_token(self,token):
-  if self.auth is None:
-   import firebase_admin
-   from firebase_admin import auth,credentials
-   if not firebase_admin._apps:
-    raw=self.s.firebase_service_account_json
-    if not raw: raise RuntimeError("Firebase credentials are not configured")
-    info=json.loads(raw) if raw.strip().startswith("{") else raw
-    firebase_admin.initialize_app(credentials.Certificate(info))
-   self.auth=auth
-  try:d=self.auth.verify_id_token(token)
-  except Exception as e: raise ValueError("Invalid authentication token") from e
-  try:r=Role(d.get("role",Role.STUDENT.value))
-  except ValueError as e: raise ValueError("Invalid role claim") from e
-  return CurrentUser(d["uid"],r,d.get("email"),d.get("institution_id"),d)
+    """Translate verified Firebase claims into the application's CurrentUser."""
+
+    def __init__(self, settings: Settings):
+        self.settings = settings
+
+    def verify_token(self, token: str) -> CurrentUser:
+        claims = verify_id_token(token)
+        try:
+            role = Role(claims.get("role", Role.STUDENT.value))
+        except ValueError as exc:
+            raise ValueError("Invalid role claim") from exc
+
+        return CurrentUser(
+            claims["uid"],
+            role,
+            claims.get("email"),
+            claims.get("institution_id"),
+            claims,
+        )
+
+
 class FirebaseStorageAdapter:
- def __init__(self,s): self.bucket=s.firebase_storage_bucket
- def evidence_path(self,user_id,filename): return f"evidence/{user_id}/{filename.replace('/','_').replace(chr(92),'_')}"
+    """Compatibility helper for evidence object paths."""
+
+    def __init__(self, settings: Settings):
+        self.settings = settings
+
+    def evidence_path(self, user_id: str, filename: str) -> str:
+        safe_name = filename.replace("/", "_").replace("\\", "_")
+        return build_storage_path("evidence", user_id, safe_name)

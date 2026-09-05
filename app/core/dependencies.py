@@ -46,17 +46,64 @@ def get_authenticated_user(
             detail="Supplied user identity does not match the authenticated user",
         )
 
-    # The Firebase UID is the document key for the approved `users` collection.
-    # A missing profile is not an authentication failure; account provisioning
-    # can occur separately from Firebase Authentication.
     profile = get_document("users", user_id)
+    role = _trusted_role(claims, profile)
 
     return AuthenticatedUser(
         user_id=user_id,
         email=claims.get("email") if isinstance(claims.get("email"), str) else None,
         claims=claims,
         profile=profile,
+        role=role,
     )
+
+
+def _trusted_role(claims: dict[str, object], profile: dict[str, object] | None) -> Role | None:
+    """Resolve role only from trusted Firebase claims or backend user data.
+
+    Client-controlled role headers are never consulted.
+    Firestore user data is preferred because it is the backend user record;
+    Firebase custom claims are the fallback when a profile has not yet stored a role.
+    """
+    profile_role = profile.get("role") if profile else None
+    claim_role = claims.get("role")
+    raw_role = profile_role if isinstance(profile_role, str) else claim_role
+    if raw_role is None:
+        return None
+    try:
+        return Role(str(raw_role).lower())
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Authenticated user has an invalid role",
+        ) from exc
+
+
+def require_roles(*allowed_roles: Role):
+    """Create a FastAPI dependency requiring one of the trusted roles."""
+    allowed = frozenset(allowed_roles)
+    if not allowed:
+        raise ValueError("At least one allowed role is required")
+
+    def dependency(user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)]) -> AuthenticatedUser:
+        if user.role is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Authenticated user has no assigned role",
+            )
+        if user.role not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
+        return user
+
+    return dependency
+
+
+def require_role(role: Role):
+    """Create a FastAPI dependency requiring one specific trusted role."""
+    return require_roles(role)
 
 
 def require_same_user(
@@ -74,52 +121,36 @@ def require_same_user(
 
 def current_user(
     authorization: str | None = Header(None, alias="Authorization"),
-    x_user_id: str | None = Header(None, alias="X-User-Id"),
-    x_user_role: str | None = Header(None, alias="X-User-Role"),
-    x_user_email: str | None = Header(None, alias="X-User-Email"),
-    x_institution_id: str | None = Header(None, alias="X-Institution-Id"),
 ):
-    """Legacy dependency retained for existing role-aware routes.
-
-    New routes should use ``get_authenticated_user`` and add authorization
-    dependencies separately when role authorization is introduced.
-    """
-    settings = get_settings()
-    if settings.auth_mode == "development":
-        if not x_user_id or not x_user_role:
-            raise PermissionError(
-                "Development authentication requires X-User-Id and X-User-Role"
-            )
-        try:
-            role = Role(x_user_role.lower())
-        except ValueError as exc:
-            raise PermissionError("Invalid development role") from exc
-        return CurrentUser(x_user_id, role, x_user_email, x_institution_id, {})
-
+    """Legacy role-aware user dependency backed by Firebase identity and role."""
     authenticated = get_authenticated_user(authorization, None)
-    claims = authenticated.claims
-    try:
-        role = Role(claims.get("role", Role.STUDENT.value))
-    except ValueError as exc:
-        raise PermissionError("Invalid role claim") from exc
+    if authenticated.role is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Authenticated user has no assigned role",
+        )
+    institution_id = authenticated.claims.get("institution_id")
+    if not isinstance(institution_id, str):
+        institution_id = None
     return CurrentUser(
         authenticated.user_id,
-        role,
+        authenticated.role,
         authenticated.email,
-        claims.get("institution_id") if isinstance(claims.get("institution_id"), str) else None,
-        claims,
+        institution_id,
+        authenticated.claims,
     )
 
 
 def roles(*allowed):
-    def dep(user=Depends(current_user)):
-        if user.role not in allowed:
-            raise PermissionError("Insufficient role")
-        return user
-
-    return dep
+    """Backward-compatible alias for trusted role authorization dependencies."""
+    normalized = tuple(Role(role) if not isinstance(role, Role) else role for role in allowed)
+    return require_roles(*normalized)
 
 
 Repo = Depends(get_repositories)
 User = Depends(current_user)
 AuthenticatedUserDep = Annotated[AuthenticatedUser, Depends(get_authenticated_user)]
+StudentUser = Annotated[AuthenticatedUser, Depends(require_role(Role.STUDENT))]
+FacultyUser = Annotated[AuthenticatedUser, Depends(require_role(Role.FACULTY))]
+RecruiterUser = Annotated[AuthenticatedUser, Depends(require_role(Role.RECRUITER))]
+AdminUser = Annotated[AuthenticatedUser, Depends(require_role(Role.ADMIN))]

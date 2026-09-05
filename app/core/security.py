@@ -12,21 +12,18 @@ class Role(str, Enum):
 
 @dataclass(frozen=True)
 class AuthenticatedUser:
-    """Identity established from a verified Firebase ID token.
-
-    ``user_id`` is always the Firebase UID. ``profile`` is the backend-loaded
-    Firestore user document when one exists.
-    """
+    """Identity established from a verified Firebase ID token."""
 
     user_id: str
     email: str | None = None
     claims: dict[str, Any] = field(default_factory=dict)
     profile: dict[str, Any] | None = None
+    role: Role | None = None
 
 
 @dataclass(frozen=True)
 class CurrentUser:
-    """Legacy application user shape retained for existing role-aware routes."""
+    """Legacy application user shape retained for existing callers."""
 
     user_id: str
     role: Role

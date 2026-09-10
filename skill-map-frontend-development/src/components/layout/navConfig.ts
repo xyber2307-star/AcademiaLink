@@ -22,6 +22,7 @@ export const navByRole: Record<UserRole, NavSection[]> = {
     {
       title: "Career",
       items: [
+        { label: "Market Intelligence", to: "/student/market-intelligence", icon: BarChart3 },
         { label: "AI Career Advisor", to: "/student/ai-assistant", icon: MessageSquare },
         { label: "Opportunities", to: "/student/opportunities", icon: Briefcase },
         { label: "Applications", to: "/student/applications", icon: Target },

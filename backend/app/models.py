@@ -72,6 +72,8 @@ class UserProfileBase(BaseModel):
     projects: Optional[List[ProjectEntry]] = Field(default_factory=list)
     certifications: Optional[List[CertificationEntry]] = Field(default_factory=list)
     experience: Optional[List[ExperienceEntry]] = Field(default_factory=list)
+    target_companies: Optional[List[str]] = Field(default_factory=list)
+    dream_companies: Optional[List[str]] = Field(default_factory=list)
 
 
 class UserProfileCreate(UserProfileBase):
@@ -102,6 +104,8 @@ class UserProfileUpdate(BaseModel):
     projects: Optional[List[ProjectEntry]] = None
     certifications: Optional[List[CertificationEntry]] = None
     experience: Optional[List[ExperienceEntry]] = None
+    target_companies: Optional[List[str]] = None
+    dream_companies: Optional[List[str]] = None
 
 
 class UserProfileResponse(UserProfileBase):
@@ -921,6 +925,139 @@ class AdminUserSummary(BaseModel):
     department: Optional[str] = ""
     created_at: Optional[str] = ""
     provenance: DataProvenance = Field(default_factory=lambda: DataProvenance(source="identity_provider"))
+
+
+# ===================== JOB MARKET INTELLIGENCE MODELS =====================
+
+MarketJobDataType = Literal["observed_posting", "verified_hiring"]
+MarketTimeRange = Literal["current", "last_1_month", "last_3_months", "custom", "all"]
+
+
+class MarketJobRecord(BaseModel):
+    job_id: str
+    company: str
+    job_title: str
+    country: Optional[str] = "India"
+    state: Optional[str] = None
+    city: Optional[str] = None
+    description: Optional[str] = ""
+    skills: List[str] = Field(default_factory=list)
+    required_skills: List[RequiredSkill] = Field(default_factory=list)
+    preferred_skills: List[str] = Field(default_factory=list)
+    experience: Optional[str] = "0-2 years"
+    employment_type: Optional[str] = "Full-time"
+    posted_date: Optional[str] = None
+    closing_date: Optional[str] = None
+    source: str = "market_data_source"
+    source_url: Optional[str] = None
+    data_type: MarketJobDataType = "observed_posting"
+    retrieved_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    provenance: DataProvenance = Field(default_factory=lambda: DataProvenance(source="job_market_registry"))
+
+
+class MarketOverviewResponse(BaseModel):
+    status: Literal["available", "empty", "unconfigured"]
+    message: Optional[str] = None
+    total_observed_postings: int = 0
+    total_verified_hirings: int = 0
+    unique_companies_count: int = 0
+    unique_roles_count: int = 0
+    top_companies: List[Dict[str, Any]] = Field(default_factory=list)
+    most_requested_skills: List[Dict[str, Any]] = Field(default_factory=list)
+    employment_type_distribution: Dict[str, int] = Field(default_factory=dict)
+    location_distribution: Dict[str, int] = Field(default_factory=dict)
+    time_filter_applied: str = "last_3_months"
+    location_filter_applied: Dict[str, Optional[str]] = Field(default_factory=dict)
+    provenance: DataProvenance = Field(default_factory=lambda: DataProvenance(source="market_intelligence_engine"))
+
+
+class CompanyMarketSummary(BaseModel):
+    company: str
+    observed_postings: int = 0
+    verified_hirings: int = 0
+    unique_roles: int = 0
+    locations: List[str] = Field(default_factory=list)
+    top_skills: List[str] = Field(default_factory=list)
+    is_target_company: bool = False
+    is_dream_company: bool = False
+
+
+class CompanyMarketDetailResponse(BaseModel):
+    company: str
+    status: Literal["available", "not_found", "unconfigured"]
+    message: Optional[str] = None
+    observed_postings_count: int = 0
+    verified_hirings_count: int = 0
+    roles_posted: List[str] = Field(default_factory=list)
+    locations: List[str] = Field(default_factory=list)
+    required_skills: List[Dict[str, Any]] = Field(default_factory=list)
+    preferred_skills: List[str] = Field(default_factory=list)
+    experience_levels: List[str] = Field(default_factory=list)
+    employment_types: List[str] = Field(default_factory=list)
+    open_postings: List[MarketJobRecord] = Field(default_factory=list)
+    posting_dates: List[str] = Field(default_factory=list)
+    skill_frequency: List[Dict[str, Any]] = Field(default_factory=list)
+    historical_activity: List[Dict[str, Any]] = Field(default_factory=list)
+    is_target_company: bool = False
+    is_dream_company: bool = False
+    provenance: DataProvenance = Field(default_factory=lambda: DataProvenance(source="market_company_analytics"))
+
+
+class SkillDemandItem(BaseModel):
+    skill: str
+    observed_postings: int
+    percentage: float
+
+
+class SkillDemandResponse(BaseModel):
+    status: Literal["available", "empty", "unconfigured"]
+    message: Optional[str] = None
+    total_postings_analyzed: int = 0
+    skills: List[SkillDemandItem] = Field(default_factory=list)
+    filters_applied: Dict[str, Any] = Field(default_factory=dict)
+    provenance: DataProvenance = Field(default_factory=lambda: DataProvenance(source="market_skill_analytics"))
+
+
+class MarketTrendItem(BaseModel):
+    month: str
+    observed_postings: int
+    unique_companies: int
+    top_skills: List[Dict[str, Any]] = Field(default_factory=list)
+    top_roles: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class MarketTrendsResponse(BaseModel):
+    status: Literal["available", "insufficient_data", "unconfigured"]
+    message: Optional[str] = None
+    trends: List[MarketTrendItem] = Field(default_factory=list)
+    provenance: DataProvenance = Field(default_factory=lambda: DataProvenance(source="market_trend_analytics"))
+
+
+class StudentMarketSkillGapResponse(BaseModel):
+    target_company: Optional[str] = None
+    target_role: Optional[str] = None
+    target_location: Optional[str] = None
+    market_match_score: float
+    matched_skills: List[SkillGapAnalysisItem] = Field(default_factory=list)
+    partial_skills: List[SkillGapAnalysisItem] = Field(default_factory=list)
+    missing_skills: List[SkillGapAnalysisItem] = Field(default_factory=list)
+    market_priority_skills: List[Dict[str, Any]] = Field(default_factory=list)
+    explanation: str
+    provenance: DataProvenance = Field(default_factory=lambda: DataProvenance(source="market_gap_engine"))
+
+
+class CompanyPreferenceRequest(BaseModel):
+    company: str
+    preference_type: Literal["target", "dream"]
+    action: Literal["add", "remove"]
+
+
+class MarketLocationOptionsResponse(BaseModel):
+    countries: List[str] = Field(default_factory=list)
+    states: List[str] = Field(default_factory=list)
+    cities: List[str] = Field(default_factory=list)
+
 
 
 

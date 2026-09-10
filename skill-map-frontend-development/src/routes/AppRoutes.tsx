@@ -28,6 +28,7 @@ const MyApplicationsPage = lazy(() => import("../pages/student/MyApplicationsPag
 const NotificationsPage = lazy(() => import("../pages/NotificationsPage").then(m => ({ default: m.NotificationsPage })));
 const RecruiterApplicationsPage = lazy(() => import("../pages/recruiter/RecruiterApplicationsPage").then(m => ({ default: m.RecruiterApplicationsPage })));
 const AdminRolesPage = lazy(() => import("../pages/admin/AdminRolesPage").then(m => ({ default: m.AdminRolesPage })));
+const JobMarketIntelligencePage = lazy(() => import("../pages/student/JobMarketIntelligencePage").then(m => ({ default: m.JobMarketIntelligencePage })));
 const ComingSoonPage = lazy(() => import("../pages/ComingSoonPage"));
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
 
@@ -56,6 +57,7 @@ export function AppRoutes() {
           <Route path="opportunities" element={<OpportunitiesPage />} />
           <Route path="opportunities/:id" element={<OpportunityDetailsPage />} />
           <Route path="applications" element={<MyApplicationsPage />} />
+          <Route path="market-intelligence" element={<JobMarketIntelligencePage />} />
           <Route path="ai-assistant" element={<StudentAIChatPage />} />
           <Route path="mentors" element={<StudentMentorPage />} />
           <Route path="portfolio" element={<PortfolioPage />} />

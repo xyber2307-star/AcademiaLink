@@ -21,6 +21,7 @@ from app.routes import (
     institution,
     jobs,
     learning_paths,
+    market,
     matching,
     notifications,
     recruiter,
@@ -117,6 +118,7 @@ app.include_router(ai_assistant.router, prefix="/api")
 app.include_router(applications.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(market.router, prefix="/api")
 
 
 @app.exception_handler(Exception)

@@ -1,0 +1,39 @@
+﻿# Environments & secrets
+.env
+.env.*
+!.env.example
+*.json
+!seed_demo_data.json
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.log
+
+# Uploads & User Submissions
+uploads/
+backend/uploads/
+
+# Python cache & virtual environment
+__pycache__/
+*.py[cod]
+*.class
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

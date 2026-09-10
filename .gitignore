@@ -1,0 +1,65 @@
+﻿# ==============================================================================
+# Root .gitignore for AcademiaLINK / SkillSphere Platform
+# ==============================================================================
+
+# --- Sensitive Environment & Secrets Files ---
+.env
+.env.*
+!.env.example
+!*.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.cert
+*.crt
+service_account*.json
+credentials*.json
+*service_account*.json
+**/service_account*.json
+
+# --- Backend Exclusions ---
+backend/venv/
+backend/.venv/
+backend/env/
+backend/*.json
+!backend/seed_demo_data.json
+backend/__pycache__/
+backend/*/__pycache__/
+backend/*/*/__pycache__/
+backend/*.py[cod]
+backend/*/*.py[cod]
+backend/*/*/*.py[cod]
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/dist/
+backend/build/
+backend/*.egg-info/
+backend/uploads/
+uploads/
+
+# --- Frontend Exclusions ---
+skill-map-frontend-development/node_modules/
+skill-map-frontend-development/dist/
+skill-map-frontend-development/dist-ssr/
+skill-map-frontend-development/.vite/
+skill-map-frontend-development/npm-debug.log*
+skill-map-frontend-development/yarn-debug.log*
+skill-map-frontend-development/yarn-error.log*
+skill-map-frontend-development/pnpm-debug.log*
+
+# --- System, Cache & IDE Artifacts ---
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*.log

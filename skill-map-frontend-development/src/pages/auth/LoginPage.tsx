@@ -15,14 +15,42 @@ const roles: { value: UserRole; label: string; icon: typeof GraduationCap }[] = 
   { value: "admin", label: "Admin", icon: ShieldCheck },
 ];
 
+/** Maps raw Firebase/network error messages to actionable, user-facing text instead of one generic string. */
+function describeAuthError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  if (message === "Failed to fetch" || message.includes("NetworkError")) {
+    return "Could not reach the server. Please check your connection or try again shortly.";
+  }
+  if (message.includes("auth/invalid-credential") || message.includes("auth/wrong-password") || message.includes("auth/user-not-found")) {
+    return "Invalid email or password. Please try again.";
+  }
+  if (message.includes("auth/too-many-requests")) {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+  if (message.includes("auth/popup-closed-by-user") || message.includes("auth/cancelled-popup-request")) {
+    return "Google sign-in was cancelled.";
+  }
+  if (message.includes("auth/popup-blocked")) {
+    return "Your browser blocked the Google sign-in popup. Please allow popups for this site and try again.";
+  }
+  if (message.includes("auth/operation-not-allowed")) {
+    return "Google sign-in is not enabled for this project yet. Please contact the administrator.";
+  }
+  if (message.includes("auth/")) {
+    return message.replace(/^Firebase:\s*/, "");
+  }
+  return message || "Something went wrong. Please try again.";
+}
+
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [role, setRole] = useState<UserRole>("student");
-  const [email, setEmail] = useState("ananya.sharma@nitk.edu.in");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (e: FormEvent) => {
@@ -30,8 +58,15 @@ export default function LoginPage() {
     if (!email || !password) { setError("Please enter your email and password."); return; }
     setError(null); setLoading(true);
     try { const u = await login({ email, password, role }); navigate(`/${u.role}`); }
-    catch { setError("Invalid credentials. Please try again."); }
+    catch (err) { setError(describeAuthError(err)); }
     finally { setLoading(false); }
+  };
+
+  const submitGoogle = async () => {
+    setError(null); setGoogleLoading(true);
+    try { const u = await loginWithGoogle(); navigate(`/${u.role}`); }
+    catch (err) { setError(describeAuthError(err)); }
+    finally { setGoogleLoading(false); }
   };
 
   return (
@@ -66,11 +101,10 @@ export default function LoginPage() {
 
       <div className="my-6 flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" />or continue with<span className="h-px flex-1 bg-slate-200" /></div>
       <div className="grid grid-cols-2 gap-3">
-        <Button variant="outline" type="button">Google</Button>
-        <Button variant="outline" type="button">DigiLocker</Button>
+        <Button variant="outline" type="button" loading={googleLoading} onClick={submitGoogle}>Google</Button>
+        <Button variant="outline" type="button" disabled title="DigiLocker integration is not available yet">DigiLocker</Button>
       </div>
       <p className="mt-6 text-center text-sm text-slate-600">New to SKILL MAP? <Link to="/register" className="font-semibold text-indigo-600 hover:text-indigo-700">Create an account</Link></p>
-      <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-center text-xs text-slate-500">Demo: any email/password works. Pick a role to preview its dashboard.</p>
     </div>
   );
 }

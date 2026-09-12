@@ -1,11 +1,13 @@
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   updateProfile,
   signOut,
 } from "firebase/auth";
 import type { User, UserRole } from "../types";
-import { apiRequest, API_BASE_URL } from "./api";
+import { apiRequest } from "./api";
 import { auth } from "./firebase";
 
 const STORAGE_KEY = "skillmap.auth";
@@ -81,6 +83,37 @@ export const authService = {
       name: profile.name || payload.name,
       email: fbUser.email || payload.email,
       role: profile.role || "student",
+      verified: true,
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    return user;
+  },
+
+  async loginWithGoogle(): Promise<User> {
+    // 1. Real Firebase Authentication via Google popup
+    const userCredential = await signInWithPopup(auth, new GoogleAuthProvider());
+    const fbUser = userCredential.user;
+
+    // 2. Fetch (or, on first sign-in, self-provision) the backend profile via Bearer token.
+    // get_current_user() on the backend creates a default "student" profile the first
+    // time a verified Firebase UID has no matching Firestore document, so this works
+    // for both returning Google users and brand-new ones without a separate register step.
+    const profile = await apiRequest<{
+      uid: string;
+      email: string;
+      name: string;
+      role: UserRole;
+      avatar?: string;
+      verified?: boolean;
+    }>("/users/me");
+
+    const user: User = {
+      id: profile.uid || fbUser.uid,
+      name: profile.name || fbUser.displayName || (fbUser.email || "").split("@")[0],
+      email: profile.email || fbUser.email || "",
+      role: profile.role || "student",
+      avatar: profile.avatar || fbUser.photoURL || "https://i.pravatar.cc/150?img=47",
       verified: true,
     };
 

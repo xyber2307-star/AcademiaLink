@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { LogOut, X } from "lucide-react";
+import { ChevronDown, LogOut, X } from "lucide-react";
 import { Logo } from "../ui/Logo";
 import { cn } from "../../utils/cn";
 import { navByRole } from "./navConfig";
@@ -51,9 +51,8 @@ export function Sidebar({ role, open, onClose, onLogout }: Props) {
           <button onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
-          {sections.map((section, i) => (
-            <div key={i}>
-              {section.title && <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{section.title}</p>}
+          {sections.map((section, i) => {
+            const list = (
               <ul className="space-y-1">
                 {section.items.map((item) => (
                   <li key={item.to}>
@@ -76,8 +75,19 @@ export function Sidebar({ role, open, onClose, onLogout }: Props) {
                   </li>
                 ))}
               </ul>
-            </div>
-          ))}
+            );
+            return section.title ? (
+              <details key={i} className="group" open>
+                <summary className="mb-2 flex cursor-pointer select-none list-none items-center justify-between pl-[42px] pr-3 text-xs font-bold uppercase tracking-wider text-slate-500 marker:content-none [&::-webkit-details-marker]:hidden">
+                  {section.title}
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+                </summary>
+                {list}
+              </details>
+            ) : (
+              <div key={i}>{list}</div>
+            );
+          })}
         </nav>
         <div className="border-t border-slate-100 p-3">
           {role === "student" && <ReadinessCard />}

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.auth import get_current_user
 from app.firebase import get_db
 from app.models import AIChatRequest, AIChatResponse, DataProvenance, UserProfileResponse
+from app.routes.matching import compute_weighted_job_match, build_job_required_skills_payload
 
 logger = logging.getLogger("academialink.ai_assistant")
 
@@ -14,58 +15,39 @@ router = APIRouter(prefix="/ai", tags=["AI Career Assistant"])
 
 
 def _calculate_grounded_job_gap(student_skills: Dict[str, float], job_data: dict) -> Dict[str, Any]:
-    """Deterministically reconciles student skills with job requirements."""
-    req_skills = job_data.get("required_skills", [])
-    pref_skills = job_data.get("preferred_skills", [])
-    min_prof = float(job_data.get("minimum_proficiency", 3.0))
+    """
+    Reconciles student skills with job requirements for AI chat grounding context.
+    Delegates entirely to the single canonical deterministic algorithm
+    (compute_weighted_job_match / build_job_required_skills_payload) so the match
+    percentage the AI Copilot references is always identical to the one shown on
+    the application, matching, and recruiter candidate-ranking pages - there is no
+    second scoring formula here.
+    """
+    required_skills_payload = build_job_required_skills_payload(job_data)
+    min_prof = float(job_data.get("minimum_proficiency") or job_data.get("minimumProficiency") or 3.0)
 
-    matched = []
-    partial = []
-    missing = []
-
-    for req in req_skills:
-        req_norm = req.strip().lower()
-        found_prof = student_skills.get(req_norm)
-        if found_prof is not None:
-            if found_prof >= min_prof:
-                matched.append({"skill": req, "proficiency": found_prof, "required": min_prof})
-            else:
-                partial.append({
-                    "skill": req,
-                    "proficiency": found_prof,
-                    "required": min_prof,
-                    "gap": round(min_prof - found_prof, 1),
-                })
-        else:
-            missing.append({"skill": req, "proficiency": 0.0, "required": min_prof, "gap": min_prof})
-
-    # Weighted match percentage
-    total_weights = len(req_skills) * 1.0 + len(pref_skills) * 0.5
-    earned_weights = 0.0
-    for req in req_skills:
-        p = student_skills.get(req.strip().lower(), 0.0)
-        if p >= min_prof:
-            earned_weights += 1.0
-        elif p > 0:
-            earned_weights += (p / min_prof)
-    for pref in pref_skills:
-        p = student_skills.get(pref.strip().lower(), 0.0)
-        if p >= min_prof:
-            earned_weights += 0.5
-        elif p > 0:
-            earned_weights += 0.5 * (p / min_prof)
-
-    score_pct = round((earned_weights / total_weights) * 100) if total_weights > 0 else 0
+    overall_score, matched_items, partial_items, missing_items, _, _ = compute_weighted_job_match(
+        student_skills, required_skills_payload
+    )
 
     return {
         "job_id": job_data.get("job_id", ""),
         "job_title": job_data.get("title", "Unknown Role"),
         "company": job_data.get("company", "Unknown Organization"),
         "minimum_proficiency": min_prof,
-        "matched_skills": matched,
-        "partial_skills": partial,
-        "missing_skills": missing,
-        "match_percentage": score_pct,
+        "matched_skills": [
+            {"skill": m.skill, "proficiency": m.current_proficiency, "required": m.required_proficiency}
+            for m in matched_items
+        ],
+        "partial_skills": [
+            {"skill": p.skill, "proficiency": p.current_proficiency, "required": p.required_proficiency, "gap": p.gap_amount}
+            for p in partial_items
+        ],
+        "missing_skills": [
+            {"skill": m.skill, "proficiency": m.current_proficiency, "required": m.required_proficiency, "gap": m.gap_amount}
+            for m in missing_items
+        ],
+        "match_percentage": round(overall_score),
     }
 
 

@@ -17,6 +17,31 @@ logger = logging.getLogger("academialink.admin")
 
 router = APIRouter(prefix="/admin", tags=["Admin & Role Management"])
 
+# Canonical role set accepted by the platform. Some legacy/external records use
+# synonyms (e.g. "industry" instead of "recruiter") - normalize defensively so a
+# single malformed Firestore record can never crash the admin listing for everyone.
+_VALID_ROLES = {"student", "faculty", "recruiter", "institution", "admin", "mentor"}
+_ROLE_ALIASES = {
+    "industry": "recruiter",
+    "company": "recruiter",
+    "employer": "recruiter",
+    "college": "institution",
+    "university": "institution",
+    "teacher": "faculty",
+    "professor": "faculty",
+}
+
+
+def _normalize_role(raw_role: Optional[str]) -> str:
+    """Map a raw/legacy Firestore role string onto the canonical UserRole set."""
+    role = (raw_role or "student").strip().lower()
+    if role in _VALID_ROLES:
+        return role
+    if role in _ROLE_ALIASES:
+        return _ROLE_ALIASES[role]
+    logger.warning("Encountered unrecognized role value '%s' - defaulting to 'student' for display.", raw_role)
+    return "student"
+
 
 @router.get("/users", response_model=List[AdminUserSummary], summary="List users for role management (Admin only)")
 async def list_users_for_admin(
@@ -38,19 +63,24 @@ async def list_users_for_admin(
     users = []
     for doc in query.stream():
         d = doc.to_dict() or {}
-        users.append(
-            AdminUserSummary(
-                uid=doc.id,
-                email=d.get("email", ""),
-                name=d.get("name", "Unknown User"),
-                role=d.get("role", "student"),
-                institution=d.get("institution", ""),
-                institution_id=d.get("institution_id", ""),
-                department=d.get("department", ""),
-                created_at=d.get("createdAt", ""),
-                provenance=DataProvenance(source="identity_provider", data_status="available"),
+        try:
+            users.append(
+                AdminUserSummary(
+                    uid=doc.id,
+                    email=d.get("email", ""),
+                    name=d.get("name", "Unknown User"),
+                    role=_normalize_role(d.get("role")),
+                    institution=d.get("institution", ""),
+                    institution_id=d.get("institution_id", ""),
+                    department=d.get("department", ""),
+                    created_at=d.get("createdAt", ""),
+                    provenance=DataProvenance(source="identity_provider", data_status="available"),
+                )
             )
-        )
+        except Exception as e:
+            # Never let one malformed user record take down the entire admin listing.
+            logger.error("Skipping malformed user record %s in admin listing: %s", doc.id, e)
+            continue
 
     return users
 

@@ -1,11 +1,39 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { LogOut, X } from "lucide-react";
 import { Logo } from "../ui/Logo";
 import { cn } from "../../utils/cn";
 import { navByRole } from "./navConfig";
+import { studentService } from "../../services/studentService";
 import type { UserRole } from "../../types";
 
 interface Props { role: UserRole; open: boolean; onClose: () => void; onLogout: () => void }
+
+/** Real career readiness pulled from the authenticated student's own backend profile - never a fixed/fabricated figure. */
+function ReadinessCard() {
+  const [readiness, setReadiness] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    // Uses the deterministic role-benchmark endpoint (not the static profile.careerReadiness
+    // field, which is written once at signup and never recalculated) so this always reflects
+    // the student's current real skills.
+    studentService.getRoleBenchmark()
+      .then((b) => { if (active) setReadiness(b.careerReadiness ?? 0); })
+      .catch(() => { if (active) setReadiness(null); });
+    return () => { active = false; };
+  }, []);
+
+  if (readiness === null) return null;
+
+  return (
+    <div className="rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 p-4 text-white">
+      <p className="text-xs font-semibold">Career Readiness</p>
+      <p className="mt-1 text-2xl font-bold">{readiness}%</p>
+      <p className="mt-1 text-[11px] text-indigo-100">Based on your verified skills and benchmark coverage.</p>
+    </div>
+  );
+}
 
 export function Sidebar({ role, open, onClose, onLogout }: Props) {
   const sections = navByRole[role];
@@ -52,11 +80,7 @@ export function Sidebar({ role, open, onClose, onLogout }: Props) {
           ))}
         </nav>
         <div className="border-t border-slate-100 p-3">
-          <div className="rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 p-4 text-white">
-            <p className="text-xs font-semibold">Career Readiness</p>
-            <p className="mt-1 text-2xl font-bold">68%</p>
-            <p className="mt-1 text-[11px] text-indigo-100">+5% since last month. Keep going!</p>
-          </div>
+          {role === "student" && <ReadinessCard />}
           <button onClick={onLogout} className="mt-3 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-rose-50 hover:text-rose-600">
             <LogOut className="h-[18px] w-[18px]" /> Sign out
           </button>

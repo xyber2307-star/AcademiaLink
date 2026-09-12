@@ -74,14 +74,26 @@ async def update_my_profile(
         )
 
 
-@router.get("/users/{user_id}", response_model=UserProfileResponse, summary="View a user profile by ID")
+@router.get("/users/{user_id}", response_model=UserProfileResponse, summary="View a user profile by ID (self or admin only)")
 async def get_user_by_id(
     user_id: str,
     current_user: UserProfileResponse = Depends(get_current_user),
 ):
     """
-    Allows authenticated users to view candidate/student profiles.
+    PRIVACY: This returns the full profile document, including private fields such
+    as email, phone, cgpa, and rollNo - it must never be exposed cross-user.
+    Only the profile owner or an admin may call this. Cross-user viewing needs
+    (e.g. a recruiter reviewing a candidate, or a mentor reviewing an assigned
+    student) are served by their own purpose-built, correctly-scoped endpoints:
+    GET /api/recruiter/jobs/{job_id}/candidates and
+    GET /api/faculty/students/{student_uid} - do not widen this endpoint instead
+    of using those.
     """
+    if current_user.uid != user_id and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: You may only view your own profile via this endpoint.",
+        )
     try:
         db = get_db()
         user_doc = db.collection("users").document(user_id).get()

@@ -85,10 +85,15 @@ export default function LandingPage() {
               <Link to="/login"><Button size="lg" variant="outline" className="w-full sm:w-auto">Explore demo dashboard</Button></Link>
             </div>
             <div className="mt-10 grid grid-cols-3 gap-6 border-t border-slate-100 pt-8">
-              {[["12,400+", "Students mapped"], ["380+", "Partner companies"], ["92%", "Placement match rate"]].map(([v, l]) => (
-                <div key={l}><p className="text-2xl font-bold text-slate-900 sm:text-3xl">{v}</p><p className="text-xs text-slate-500 sm:text-sm">{l}</p></div>
+              {[
+                ["Deterministic", "Skill scoring, not guesswork"],
+                ["Verified", "Faculty-reviewed evidence"],
+                ["Explainable", "Transparent match scores"],
+              ].map(([v, l]) => (
+                <div key={l}><p className="text-lg font-bold text-slate-900 sm:text-xl">{v}</p><p className="text-xs text-slate-500 sm:text-sm">{l}</p></div>
               ))}
             </div>
+            <p className="mt-3 text-xs text-slate-400">SIH 2026 prototype (SIH26044) — figures shown elsewhere in the app reflect real platform data, not projected user counts.</p>
           </div>
 
           {/* Hero mock dashboard */}

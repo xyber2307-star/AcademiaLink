@@ -11,6 +11,12 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
     "Content-Type": "application/json",
   };
   try {
+    // On a hard page reload, Firebase restores the persisted session asynchronously.
+    // Without waiting here, the very first request(s) after reload fire while
+    // auth.currentUser is still null, get sent with no Authorization header, and are
+    // wrongly rejected by the backend with 401 - even though the user IS logged in.
+    // authStateReady() resolves once that initial restoration has completed.
+    await auth.authStateReady();
     const user = auth.currentUser;
     if (user) {
       const token = await user.getIdToken();

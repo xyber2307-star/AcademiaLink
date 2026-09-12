@@ -1,81 +1,108 @@
-import { apiRequest, simulate } from "./api";
-import {
-  mockApplications,
-  mockFeedback,
-  mockLearning,
-  mockNotifications,
-  mockOpportunities,
-  mockReadinessBreakdown,
-  mockReadinessTrend,
-  mockSkillGaps,
-  mockSkills,
-  mockStudent,
-} from "../data/mockData";
+import { apiRequest } from "./api";
 import type { Opportunity, Skill, SkillGap, StudentProfile } from "../types";
+
+/**
+ * IMPORTANT - DATA INTEGRITY:
+ * This service must never silently substitute fabricated/mock data for a real
+ * (possibly empty) backend response. An empty array/object from Firestore is a
+ * legitimate, honest state (e.g. a brand-new student with no skills yet) and
+ * pages must render it as an empty state, not paper over it with fake numbers.
+ * Errors are logged and re-thrown/returned as empty so the UI's error/loading
+ * states (see useFetch) can react correctly instead of showing invented data.
+ */
+
+export interface RoleBenchmarkResponse {
+  targetRole: string;
+  careerReadiness: number;
+  skillsBenchmarked: number;
+  meetingBenchmark: number;
+  belowBenchmark: number;
+  avgGap: number;
+  gaps: SkillGap[];
+  strengths: Array<{ skill: string; currentProficiency: number; requiredProficiency: number; matched: boolean }>;
+}
+
+export interface AssessmentHistoryItem {
+  assessment_id: string;
+  skill_name: string;
+  category: string;
+  score_percentage: number;
+  assessed_proficiency: number;
+  timestamp: string;
+}
+
+export interface LearningPathSkillItem {
+  skill_id: string;
+  skill_name: string;
+  current_proficiency: number;
+  required_proficiency: number;
+  gap: number;
+  job_weight: number;
+  priority: "High" | "Medium" | "Low";
+  priority_score: number;
+  reason: string;
+  status: "not_started" | "in_progress" | "completed";
+}
+
+export interface LearningPathItem {
+  path_id: string;
+  target_job_id: string;
+  target_job_title: string;
+  target_company: string;
+  skills: LearningPathSkillItem[];
+  overall_match_before: number;
+  overall_match_after: number;
+  status: "active" | "completed" | "archived";
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export const studentService = {
   getProfile: async (): Promise<StudentProfile> => {
-    try {
-      const data = await apiRequest<any>("/users/me");
-      return {
-        ...mockStudent,
-        ...data,
-        id: data.uid || data.id || mockStudent.id,
-      };
-    } catch (e) {
-      return simulate(mockStudent);
-    }
+    return apiRequest<StudentProfile>("/users/me");
   },
 
   getSkills: async (): Promise<Skill[]> => {
-    try {
-      const data = await apiRequest<Skill[]>("/skills/me");
-      if (Array.isArray(data) && data.length > 0) {
-        return data;
-      }
-      return simulate(mockSkills);
-    } catch (e) {
-      return simulate(mockSkills);
-    }
+    const data = await apiRequest<Skill[]>("/skills/me");
+    return Array.isArray(data) ? data : [];
+  },
+
+  /** Full deterministic role-benchmark response (real careerReadiness, gaps, strengths). */
+  getRoleBenchmark: async (role?: string): Promise<RoleBenchmarkResponse> => {
+    const query = role ? `?role=${encodeURIComponent(role)}` : "";
+    return apiRequest<RoleBenchmarkResponse>(`/matching/role-benchmark${query}`);
   },
 
   getSkillGaps: async (): Promise<SkillGap[]> => {
-    try {
-      const benchmark = await apiRequest<{ gaps: SkillGap[] }>("/matching/role-benchmark");
-      if (benchmark && Array.isArray(benchmark.gaps) && benchmark.gaps.length > 0) {
-        return benchmark.gaps;
-      }
-      return simulate(mockSkillGaps);
-    } catch (e) {
-      return simulate(mockSkillGaps);
-    }
+    const benchmark = await studentService.getRoleBenchmark();
+    return Array.isArray(benchmark?.gaps) ? benchmark.gaps : [];
   },
 
   getOpportunities: async (): Promise<Opportunity[]> => {
-    try {
-      const jobs = await apiRequest<any[]>("/jobs");
-      if (Array.isArray(jobs) && jobs.length > 0) {
-        return jobs.map((j) => ({
-          id: j.id,
-          title: j.title,
-          company: j.company,
-          logo: j.logo || "CO",
-          location: j.location,
-          type: j.type || "Internship",
-          mode: j.workMode || "Hybrid",
-          stipend: j.stipend || "₹40,000/mo",
-          skills: (j.requiredSkills || []).map((s: any) => (typeof s === "string" ? s : s.name)),
-          matchScore: j.matchScore || 80,
-          postedAgo: "Recently",
-          deadline: j.deadline || "Open",
-          applicants: j.applicants || 0,
-          description: j.description,
-        }));
-      }
-      return simulate(mockOpportunities);
-    } catch (e) {
-      return simulate(mockOpportunities);
-    }
+    const jobs = await apiRequest<any[]>("/jobs");
+    if (!Array.isArray(jobs)) return [];
+    return jobs.map((j) => ({
+      id: j.id,
+      title: j.title,
+      company: j.company,
+      logo: j.logo || (j.company || "CO").slice(0, 2).toUpperCase(),
+      location: j.location,
+      type: j.type || "Internship",
+      mode: j.workMode || "Hybrid",
+      stipend: j.stipend || "Not specified",
+      skills: (j.requiredSkills || j.required_skills || []).map((s: any) => (typeof s === "string" ? s : s.name)),
+      matchScore: typeof j.matchScore === "number" ? j.matchScore : 0,
+      postedAgo: j.createdAt ? new Date(j.createdAt).toLocaleDateString() : "Recently",
+      deadline: j.deadline || "Open",
+      applicants: j.applicants || 0,
+      description: j.description,
+    }));
+  },
+
+  /** Real historical assessment scores, used to plot a genuine (not fabricated) trend. */
+  getAssessmentHistory: async (): Promise<AssessmentHistoryItem[]> => {
+    const data = await apiRequest<AssessmentHistoryItem[]>("/skills/assessments/history");
+    return Array.isArray(data) ? data : [];
   },
 
   getJob: async (jobId: string): Promise<any> => {
@@ -86,9 +113,9 @@ export const studentService = {
     return apiRequest<any>(`/matching/job/${jobId}`);
   },
 
-  getLearningPaths: async (): Promise<any[]> => {
+  getLearningPaths: async (): Promise<LearningPathItem[]> => {
     try {
-      const data = await apiRequest<any[]>("/learning-paths/me");
+      const data = await apiRequest<LearningPathItem[]>("/learning-paths/me");
       return Array.isArray(data) ? data : [];
     } catch (e) {
       return [];
@@ -243,11 +270,5 @@ export const studentService = {
     });
   },
 
-  getLearning: () => simulate(mockLearning),
-  getApplications: () => simulate(mockApplications),
-  getMentorFeedback: () => simulate(mockFeedback),
-  getNotifications: () => simulate(mockNotifications),
-  getReadinessTrend: () => simulate(mockReadinessTrend),
-  getReadinessBreakdown: () => simulate(mockReadinessBreakdown),
 };
 

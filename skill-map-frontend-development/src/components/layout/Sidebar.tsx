@@ -27,10 +27,10 @@ function ReadinessCard() {
   if (readiness === null) return null;
 
   return (
-    <div className="rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 p-4 text-white">
-      <p className="text-xs font-semibold">Career Readiness</p>
-      <p className="mt-1 text-2xl font-bold">{readiness}%</p>
-      <p className="mt-1 text-[11px] text-indigo-100">Based on your verified skills and benchmark coverage.</p>
+    <div className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100">
+      <p className="text-xs font-semibold text-slate-600">Career Readiness</p>
+      <p className="mt-1 text-2xl font-bold text-indigo-600">{readiness}%</p>
+      <p className="mt-1 text-xs text-slate-500">Based on your verified skills and benchmark coverage.</p>
     </div>
   );
 }
@@ -42,7 +42,7 @@ export function Sidebar({ role, open, onClose, onLogout }: Props) {
       {open && <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden" onClick={onClose} />}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white transition-transform duration-300 lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >

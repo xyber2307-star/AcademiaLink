@@ -79,6 +79,13 @@ export default function StudentDashboard() {
     stage: 0,
   }));
   const activeApps = applications.filter((a) => !["rejected", "selected", "withdrawn"].includes(a.status)).length;
+  // Defensive de-dupe: guards against the API ever returning the same opportunity twice.
+  // Keyed by id AND by normalized title+company, because the real data can contain distinct
+  // Firestore job documents that are content-duplicates of each other (same role/company
+  // posted multiple times) - an id-only key would not catch that.
+  const uniqueOpportunities = Array.from(
+    new Map(opportunities.map((o) => [`${o.title.trim().toLowerCase()}|${o.company.trim().toLowerCase()}`, o])).values()
+  );
 
   // Active learning path skills (real, gap-driven), sorted by deterministic priority already applied server-side.
   const activePath = learningPaths.find((p) => p.status === "active") || learningPaths[0];
@@ -153,9 +160,12 @@ export default function StudentDashboard() {
             {hasTrendData ? (
               <ReadinessTrendChart data={trend} />
             ) : (
-              <div className="flex h-[220px] flex-col items-center justify-center gap-1 text-center text-sm text-slate-400">
+              <div className="flex h-[220px] flex-col items-center justify-center gap-1 text-center text-sm text-muted">
                 <p>Not enough assessment history yet to plot a trend.</p>
                 <p>Take assessments across a few weeks to see your progress here.</p>
+                <Link to="/student/assessment" className="mt-3 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                  Take assessment <ArrowRight className="h-4 w-4" />
+                </Link>
               </div>
             )}
           </CardBody>
@@ -163,140 +173,26 @@ export default function StudentDashboard() {
         <Card>
           <CardHeader title="Skill distribution" subtitle="You vs industry expectation by category" />
           <CardBody>
-            {skills.length > 0 ? <SkillDistributionChart skills={skills} /> : <p className="py-10 text-center text-sm text-slate-400">Add skills to see your distribution.</p>}
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Strong / weak / gaps */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card>
-          <CardHeader title="Strong skills" subtitle="Your top competencies" action={<Link to="/student/skills" className="text-xs font-semibold text-indigo-600">View all</Link>} />
-          <CardBody className="space-y-3">
-            {strong.length === 0 && <p className="text-sm text-slate-400">No skills recorded yet.</p>}
-            {strong.map((s) => (
-              <div key={s.id}>
-                <div className="mb-1 flex items-center justify-between text-sm"><span className="font-medium text-slate-800">{s.name}</span><span className="font-semibold text-emerald-600">{s.score}</span></div>
-                <ProgressBar value={s.score} barClassName="bg-emerald-500" size="sm" />
-              </div>
-            ))}
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader title="Weak skills" subtitle="Needs attention" action={<Link to="/student/learning" className="text-xs font-semibold text-indigo-600">Improve</Link>} />
-          <CardBody className="space-y-3">
-            {weak.length === 0 && <p className="text-sm text-slate-400">No skills recorded yet.</p>}
-            {weak.map((s) => (
-              <div key={s.id}>
-                <div className="mb-1 flex items-center justify-between text-sm"><span className="font-medium text-slate-800">{s.name}</span><span className={`font-semibold ${s.score < 55 ? "text-rose-600" : "text-amber-600"}`}>{s.score}</span></div>
-                <ProgressBar value={s.score} barClassName={scoreBar(s.score)} size="sm" />
-              </div>
-            ))}
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader title="Skill gap snapshot" subtitle={`vs ${benchmark.targetRole} benchmark`} action={<Link to="/student/skill-gap" className="text-xs font-semibold text-indigo-600">Full analysis</Link>} />
-          <CardBody>
-            {gaps.length > 0 ? <SkillGapChart gaps={gaps.slice(0, 5)} height={230} /> : <p className="py-10 text-center text-sm text-slate-400">You're meeting all benchmarked skills.</p>}
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Learning + opportunities */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader title="Recommended learning" subtitle="Generated from your real skill gaps" action={<Link to="/student/learning" className="text-xs font-semibold text-indigo-600">View path</Link>} />
-          <CardBody className="space-y-3">
-            {learningItems.length === 0 && (
-              <p className="text-sm text-slate-400">
-                No active learning path yet. Generate one from a target job's Skill Gap analysis to get a personalized plan.
-              </p>
-            )}
-            {learningItems.map((l) => (
-              <div key={l.skill_id} className="flex items-center gap-4 rounded-xl border border-slate-100 p-3 transition hover:border-indigo-200 hover:bg-indigo-50/30">
-                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${l.priority === "High" ? "bg-rose-50 text-rose-600" : l.priority === "Medium" ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"}`}>{l.priority.slice(0, 3).toUpperCase()}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-800">{l.skill_name}</p>
-                  <p className="text-xs text-slate-500">Gap: {l.gap.toFixed(1)} · Target for <span className="text-indigo-600">{activePath?.target_job_title}</span></p>
-                  <ProgressBar value={l.status === "completed" ? 100 : l.status === "in_progress" ? 50 : 0} size="sm" className="mt-2" />
-                </div>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${priorityColor[l.priority]}`}>{l.priority}</span>
-              </div>
-            ))}
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader title="Recommended opportunities" subtitle="Ranked by your skill-match score" action={<Link to="/student/opportunities" className="text-xs font-semibold text-indigo-600">Marketplace</Link>} />
-          <CardBody className="space-y-3">
-            {opportunities.length === 0 && <p className="text-sm text-slate-400">No open opportunities right now. Check back soon.</p>}
-            {opportunities.slice(0, 4).map((o) => (
-              <Link to={`/student/opportunities/${o.id}`} key={o.id} className="flex items-center gap-4 rounded-xl border border-slate-100 p-3 transition hover:border-indigo-200 hover:bg-indigo-50/30">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-xs font-bold text-white">{o.logo}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-800">{o.title}</p>
-                  <p className="text-xs text-slate-500">{o.company} · {o.location} · {o.stipend}</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1">{o.skills.slice(0, 3).map((s) => <span key={s} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">{s}</span>)}</div>
-                </div>
-                <div className="text-right"><p className={`text-lg font-bold ${o.matchScore >= 80 ? "text-emerald-600" : "text-amber-600"}`}>{o.matchScore}%</p><p className="text-[10px] uppercase tracking-wide text-slate-400">match</p></div>
-              </Link>
-            ))}
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Applications + readiness + feedback */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card>
-          <CardHeader title="Application status" subtitle={`${dashboardApplications.length} total applications`} action={<Link to="/student/applications" className="text-xs font-semibold text-indigo-600">Tracker</Link>} />
-          <CardBody>
-            {dashboardApplications.length === 0 ? (
-              <p className="py-10 text-center text-sm text-slate-400">You haven't applied to any opportunities yet.</p>
+            {skills.length > 0 ? (
+              <SkillDistributionChart skills={skills} />
             ) : (
-              <>
-                <ApplicationStatusChart applications={dashboardApplications} />
-                <ul className="mt-2 space-y-2">
-                  {dashboardApplications.slice(0, 3).map((a) => (
-                    <li key={a.id} className="flex items-center justify-between text-sm"><span className="truncate text-slate-700">{a.role} <span className="text-slate-400">· {a.company}</span></span><span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${statusColor[a.status]}`}>{a.status}</span></li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader title="Career readiness breakdown" subtitle="Weighted components of your readiness index" />
-          <CardBody>
-            <ReadinessRadialChart data={breakdown} />
-            <ul className="mt-1 grid grid-cols-1 gap-1.5">
-              {breakdown.map((b, i) => (
-                <li key={b.name} className="flex items-center justify-between text-xs"><span className="flex items-center gap-2 text-slate-600"><span className="h-2.5 w-2.5 rounded-full" style={{ background: CHART_COLORS[i] }} />{b.name}</span><span className="font-semibold text-slate-800">{b.value}%</span></li>
-              ))}
-            </ul>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader title="Mentor feedback" subtitle="Latest guidance from your mentor" action={<Link to="/student/mentors" className="text-xs font-semibold text-indigo-600">All feedback</Link>} />
-          <CardBody className="space-y-4">
-            {feedback.length === 0 && <p className="text-sm text-slate-400">No mentor feedback yet.</p>}
-            {feedback.slice(0, 3).map((f) => (
-              <div key={f.feedback_id} className="rounded-xl bg-slate-50 p-3">
-                <div className="flex items-center gap-3">
-                  <Avatar name={f.mentor_name || "Mentor"} size="sm" />
-                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-800">{f.mentor_name || "Faculty Mentor"}</p></div>
-                  <span className="text-[11px] text-slate-400">{f.createdAt ? new Date(f.createdAt).toLocaleDateString() : ""}</span>
-                </div>
-                <p className="mt-2 text-xs leading-relaxed text-slate-600">{f.message}</p>
+              <div className="flex flex-col items-center gap-3 py-10 text-center text-sm text-muted">
+                <p>Add skills to see your distribution.</p>
+                <Link to="/student/skills" className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                  Add a skill <ArrowRight className="h-4 w-4" />
+                </Link>
               </div>
-            ))}
+            )}
           </CardBody>
         </Card>
       </div>
 
-      {/* Priority gaps table */}
+      {/* Priority gaps table - moved up: this is the highest-impact information on the
+          page and should not require scrolling past five other sections to reach. */}
       <Card>
         <CardHeader title="Priority skill gaps" subtitle="Highest impact actions for your target role" action={<Link to="/student/skill-gap" className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600">Full report <ArrowRight className="h-3 w-3" /></Link>} />
         {gaps.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-slate-400">You're meeting all benchmarked requirements for your target role.</p>
+          <p className="px-5 py-8 text-center text-sm text-muted">You're meeting all benchmarked requirements for your target role.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -317,6 +213,130 @@ export default function StudentDashboard() {
           </div>
         )}
       </Card>
+
+      {/* Strong / weak / gaps */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader title="Strong skills" subtitle="Your top competencies" action={<Link to="/student/skills" className="text-xs font-semibold text-indigo-600">View all</Link>} />
+          <CardBody className="space-y-3">
+            {strong.length === 0 && <p className="text-sm text-muted">No skills recorded yet.</p>}
+            {strong.map((s) => (
+              <div key={s.id}>
+                <div className="mb-1 flex items-center justify-between text-sm"><span className="font-medium text-slate-800">{s.name}</span><span className="font-semibold text-emerald-600">{s.score}</span></div>
+                <ProgressBar value={s.score} barClassName="bg-emerald-500" size="sm" />
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader title="Weak skills" subtitle="Needs attention" action={<Link to="/student/learning" className="text-xs font-semibold text-indigo-600">Improve</Link>} />
+          <CardBody className="space-y-3">
+            {weak.length === 0 && <p className="text-sm text-muted">No skills recorded yet.</p>}
+            {weak.map((s) => (
+              <div key={s.id}>
+                <div className="mb-1 flex items-center justify-between text-sm"><span className="font-medium text-slate-800">{s.name}</span><span className={`font-semibold ${s.score < 55 ? "text-rose-600" : "text-amber-600"}`}>{s.score}</span></div>
+                <ProgressBar value={s.score} barClassName={scoreBar(s.score)} size="sm" />
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader title="Skill gap snapshot" subtitle={`vs ${benchmark.targetRole} benchmark`} action={<Link to="/student/skill-gap" className="text-xs font-semibold text-indigo-600">Full analysis</Link>} />
+          <CardBody>
+            {gaps.length > 0 ? <SkillGapChart gaps={gaps.slice(0, 5)} height={230} /> : <p className="py-10 text-center text-sm text-muted">You're meeting all benchmarked skills.</p>}
+          </CardBody>
+        </Card>
+      </div>
+
+      {/* Learning + opportunities */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="Recommended learning" subtitle="Generated from your real skill gaps" action={<Link to="/student/learning" className="text-xs font-semibold text-indigo-600">View path</Link>} />
+          <CardBody className="space-y-3">
+            {learningItems.length === 0 && (
+              <p className="text-sm text-muted">
+                No active learning path yet. Generate one from a target job's Skill Gap analysis to get a personalized plan.
+              </p>
+            )}
+            {learningItems.map((l) => (
+              <div key={l.skill_id} className="flex items-center gap-4 rounded-xl border border-slate-100 p-3 transition hover:border-indigo-200 hover:bg-indigo-50/30">
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${l.priority === "High" ? "bg-rose-50 text-rose-600" : l.priority === "Medium" ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"}`}>{l.priority.slice(0, 3).toUpperCase()}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-800">{l.skill_name}</p>
+                  <p className="text-xs text-slate-500">Gap: {l.gap.toFixed(1)} · Target for <span className="text-indigo-600">{activePath?.target_job_title}</span></p>
+                  <ProgressBar value={l.status === "completed" ? 100 : l.status === "in_progress" ? 50 : 0} size="sm" className="mt-2" />
+                </div>
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${priorityColor[l.priority]}`}>{l.priority}</span>
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader title="Recommended opportunities" subtitle="Ranked by your skill-match score" action={<Link to="/student/opportunities" className="text-xs font-semibold text-indigo-600">Marketplace</Link>} />
+          <CardBody className="space-y-3">
+            {uniqueOpportunities.length === 0 && <p className="text-sm text-muted">No open opportunities right now. Check back soon.</p>}
+            {uniqueOpportunities.slice(0, 4).map((o) => (
+              <Link to={`/student/opportunities/${o.id}`} key={o.id} className="flex items-center gap-4 rounded-xl border border-slate-100 p-3 transition hover:border-indigo-200 hover:bg-indigo-50/30">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-xs font-bold text-white">{o.logo}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-800">{o.title}</p>
+                  <p className="text-xs text-slate-500">{o.company} · {o.location} · {o.stipend}</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1">{o.skills.slice(0, 3).map((s) => <span key={s} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">{s}</span>)}</div>
+                </div>
+                <div className="text-right"><p className={`text-lg font-bold ${o.matchScore >= 80 ? "text-emerald-600" : "text-amber-600"}`}>{o.matchScore}%</p><p className="text-[10px] uppercase tracking-wide text-muted">match</p></div>
+              </Link>
+            ))}
+          </CardBody>
+        </Card>
+      </div>
+
+      {/* Applications + readiness + feedback */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader title="Application status" subtitle={`${dashboardApplications.length} total applications`} action={<Link to="/student/applications" className="text-xs font-semibold text-indigo-600">Tracker</Link>} />
+          <CardBody>
+            {dashboardApplications.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted">You haven't applied to any opportunities yet.</p>
+            ) : (
+              <>
+                <ApplicationStatusChart applications={dashboardApplications} />
+                <ul className="mt-2 space-y-2">
+                  {dashboardApplications.slice(0, 3).map((a) => (
+                    <li key={a.id} className="flex items-center justify-between text-sm"><span className="truncate text-slate-700">{a.role} <span className="text-muted">· {a.company}</span></span><span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${statusColor[a.status]}`}>{a.status}</span></li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader title="Career readiness breakdown" subtitle="Weighted components of your readiness index" />
+          <CardBody>
+            <ReadinessRadialChart data={breakdown} />
+            <ul className="mt-1 grid grid-cols-1 gap-1.5">
+              {breakdown.map((b, i) => (
+                <li key={b.name} className="flex items-center justify-between text-xs"><span className="flex items-center gap-2 text-slate-600"><span className="h-2.5 w-2.5 rounded-full" style={{ background: CHART_COLORS[i] }} />{b.name}</span><span className="font-semibold text-slate-800">{b.value}%</span></li>
+              ))}
+            </ul>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader title="Mentor feedback" subtitle="Latest guidance from your mentor" action={<Link to="/student/mentors" className="text-xs font-semibold text-indigo-600">All feedback</Link>} />
+          <CardBody className="space-y-4">
+            {feedback.length === 0 && <p className="text-sm text-muted">No mentor feedback yet.</p>}
+            {feedback.slice(0, 3).map((f) => (
+              <div key={f.feedback_id} className="rounded-xl bg-slate-50 p-3">
+                <div className="flex items-center gap-3">
+                  <Avatar name={f.mentor_name || "Mentor"} size="sm" />
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-800">{f.mentor_name || "Faculty Mentor"}</p></div>
+                  <span className="text-[11px] text-muted">{f.createdAt ? new Date(f.createdAt).toLocaleDateString() : ""}</span>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-slate-600">{f.message}</p>
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 }

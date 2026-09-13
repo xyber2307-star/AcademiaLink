@@ -25,11 +25,21 @@ export default function RegisterPage() {
     if (form.password !== form.confirm) errs.confirm = "Passwords do not match";
     setErrors(errs);
     if (Object.keys(errs).length) return;
+    setLoading(true);
     try {
       const u = await register(form);
       navigate(`/${u.role}`);
     } catch (err: any) {
-      setErrors({ email: err.message || "Registration failed. Please try again." });
+      const message: string = err?.message || "";
+      const friendly =
+        message === "Failed to fetch" || message.includes("NetworkError")
+          ? "Could not reach the server. Please check your connection or try again shortly."
+          : message.includes("auth/email-already-in-use")
+          ? "An account with this email already exists. Try signing in instead."
+          : message.includes("auth/") || message
+          ? message.replace(/^Firebase:\s*/, "")
+          : "Registration failed. Please try again.";
+      setErrors({ email: friendly });
     } finally {
       setLoading(false);
     }

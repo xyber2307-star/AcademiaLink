@@ -28,6 +28,8 @@ const MyApplicationsPage = lazy(() => import("../pages/student/MyApplicationsPag
 const NotificationsPage = lazy(() => import("../pages/NotificationsPage").then(m => ({ default: m.NotificationsPage })));
 const RecruiterApplicationsPage = lazy(() => import("../pages/recruiter/RecruiterApplicationsPage").then(m => ({ default: m.RecruiterApplicationsPage })));
 const AdminRolesPage = lazy(() => import("../pages/admin/AdminRolesPage").then(m => ({ default: m.AdminRolesPage })));
+const AdminSkillsPage = lazy(() => import("../pages/admin/AdminSkillsPage").then(m => ({ default: m.AdminSkillsPage })));
+const ProfilePage = lazy(() => import("../pages/common/ProfilePage"));
 const JobMarketIntelligencePage = lazy(() => import("../pages/student/JobMarketIntelligencePage").then(m => ({ default: m.JobMarketIntelligencePage })));
 const ComingSoonPage = lazy(() => import("../pages/ComingSoonPage"));
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
@@ -68,6 +70,7 @@ export function AppRoutes() {
         {/* Recruiter Experience */}
         <Route path="/recruiter" element={<DashboardLayout role="recruiter" />}>
           <Route index element={<RecruiterDashboardPage />} />
+          <Route path="profile" element={<ProfilePage role="recruiter" />} />
           <Route path="opportunities" element={<RecruiterDashboardPage />} />
           <Route path="post" element={<RecruiterDashboardPage />} />
           <Route path="candidates" element={<RecruiterCandidatesPage />} />
@@ -80,6 +83,7 @@ export function AppRoutes() {
         {/* Faculty / Mentor Experience */}
         <Route path="/faculty" element={<DashboardLayout role="faculty" />}>
           <Route index element={<FacultyDashboardPage />} />
+          <Route path="profile" element={<ProfilePage role="faculty" />} />
           <Route path="students" element={<FacultyDashboardPage />} />
           <Route path="students/:studentId" element={<FacultyStudentDetailPage />} />
           <Route path="verification" element={<FacultyDashboardPage />} />
@@ -92,6 +96,7 @@ export function AppRoutes() {
         {/* Institution Admin Analytics Experience */}
         <Route path="/institution" element={<DashboardLayout role="institution" />}>
           <Route index element={<InstitutionDashboardPage />} />
+          <Route path="profile" element={<ProfilePage role="institution" />} />
           <Route path="students" element={<InstitutionDashboardPage activeTab="students" />} />
           <Route path="skills" element={<InstitutionDashboardPage activeTab="skills" />} />
           <Route path="placements" element={<InstitutionDashboardPage activeTab="recruitment" />} />
@@ -102,7 +107,9 @@ export function AppRoutes() {
         {/* Administrator Role Management */}
         <Route path="/admin" element={<DashboardLayout role="admin" />}>
           <Route index element={<AdminRolesPage />} />
+          <Route path="profile" element={<ProfilePage role="admin" />} />
           <Route path="roles" element={<AdminRolesPage />} />
+          <Route path="skills" element={<AdminSkillsPage />} />
           <Route path="*" element={<AdminRolesPage />} />
         </Route>
 

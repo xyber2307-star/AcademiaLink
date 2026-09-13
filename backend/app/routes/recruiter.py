@@ -14,7 +14,7 @@ from app.models import (
     JobUpdate,
     UserProfileResponse,
 )
-from app.routes.matching import compute_weighted_job_match
+from app.routes.matching import compute_weighted_job_match, build_job_required_skills_payload
 
 logger = logging.getLogger("academialink.recruiter")
 
@@ -315,7 +315,7 @@ async def get_job_candidates(
             detail="Access denied: You cannot view candidates for another recruiter's job",
         )
 
-    required_skills = job_data.get("required_skills") or job_data.get("requiredSkills") or []
+    required_skills = build_job_required_skills_payload(job_data)
     job_title = job_data.get("title", "Opportunity")
     company = job_data.get("company", "Company")
 

@@ -78,17 +78,22 @@ export default function LandingPage() {
               Map skills. Close gaps. <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Get placed.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-slate-600">
-              SKILL MAP is a unified portal for academia–industry collaboration — turning student competencies into verified, industry-aligned skill profiles that drive internships and placements.
+              AcademiaLink is a unified portal for academia–industry collaboration — turning student competencies into verified, industry-aligned skill profiles that drive internships and placements.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/register"><Button size="lg" icon={<ArrowRight className="h-4 w-4" />} className="w-full sm:w-auto">Create free account</Button></Link>
               <Link to="/login"><Button size="lg" variant="outline" className="w-full sm:w-auto">Explore demo dashboard</Button></Link>
             </div>
             <div className="mt-10 grid grid-cols-3 gap-6 border-t border-slate-100 pt-8">
-              {[["12,400+", "Students mapped"], ["380+", "Partner companies"], ["92%", "Placement match rate"]].map(([v, l]) => (
-                <div key={l}><p className="text-2xl font-bold text-slate-900 sm:text-3xl">{v}</p><p className="text-xs text-slate-500 sm:text-sm">{l}</p></div>
+              {[
+                ["Deterministic", "Skill scoring, not guesswork"],
+                ["Verified", "Faculty-reviewed evidence"],
+                ["Explainable", "Transparent match scores"],
+              ].map(([v, l]) => (
+                <div key={l}><p className="text-lg font-bold text-slate-900 sm:text-xl">{v}</p><p className="text-xs text-slate-500 sm:text-sm">{l}</p></div>
               ))}
             </div>
+            <p className="mt-3 text-xs text-slate-400">SIH 2026 prototype (SIH26044) — figures shown elsewhere in the app reflect real platform data, not projected user counts.</p>
           </div>
 
           {/* Hero mock dashboard */}
@@ -150,7 +155,7 @@ export default function LandingPage() {
       {/* How it works */}
       <section id="how" className="bg-slate-950 py-20 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center"><h2 className="text-3xl font-bold tracking-tight">How SKILL MAP works</h2><p className="mt-3 text-slate-400">A guided journey from self-awareness to placement.</p></div>
+          <div className="mx-auto max-w-2xl text-center"><h2 className="text-3xl font-bold tracking-tight">How AcademiaLink works</h2><p className="mt-3 text-slate-400">A guided journey from self-awareness to placement.</p></div>
           <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {steps.map((s) => (
               <div key={s.n} className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur"><p className="text-sm font-bold text-indigo-400">{s.n}</p><h3 className="mt-3 text-lg font-semibold">{s.title}</h3><p className="mt-2 text-sm text-slate-400">{s.desc}</p></div>
@@ -177,7 +182,7 @@ export default function LandingPage() {
       <footer className="border-t border-slate-100 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-sm text-slate-500 sm:flex-row sm:px-6 lg:px-8">
           <Logo />
-          <p>© 2025 SKILL MAP · Portal for Academia–Industry Collaboration · SIH26044</p>
+          <p>© 2025 AcademiaLink · Portal for Academia–Industry Collaboration · SIH26044</p>
         </div>
       </footer>
     </div>

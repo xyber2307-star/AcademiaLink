@@ -9,7 +9,7 @@ export function Logo({ className, light = false, compact = false }: { className?
       </span>
       {!compact && (
         <div className="leading-tight">
-          <span className={cn("block text-base font-extrabold tracking-tight", light ? "text-white" : "text-slate-900")}>SKILL MAP</span>
+          <span className={cn("block text-base font-extrabold tracking-tight", light ? "text-white" : "text-slate-900")}>AcademiaLink</span>
           <span className={cn("block text-[10px] font-medium uppercase tracking-widest", light ? "text-indigo-200" : "text-slate-500")}>SIH26044</span>
         </div>
       )}

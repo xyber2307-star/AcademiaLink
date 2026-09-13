@@ -5,6 +5,7 @@ import { authService, type LoginPayload, type RegisterPayload } from "../service
 interface AuthContextValue {
   user: User | null;
   login: (p: LoginPayload) => Promise<User>;
+  loginWithGoogle: () => Promise<User>;
   register: (p: RegisterPayload) => Promise<User>;
   verifyEmail: (code: string) => Promise<User | null>;
   logout: () => void;
@@ -16,11 +17,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => authService.getCurrentUser());
 
   const login = useCallback(async (p: LoginPayload) => { const u = await authService.login(p); setUser(u); return u; }, []);
+  const loginWithGoogle = useCallback(async () => { const u = await authService.loginWithGoogle(); setUser(u); return u; }, []);
   const register = useCallback(async (p: RegisterPayload) => { const u = await authService.register(p); setUser(u); return u; }, []);
   const verifyEmail = useCallback(async (code: string) => { const u = await authService.verifyEmail(code); setUser(u); return u; }, []);
   const logout = useCallback(() => { authService.logout(); setUser(null); }, []);
 
-  const value = useMemo(() => ({ user, login, register, verifyEmail, logout }), [user, login, register, verifyEmail, logout]);
+  const value = useMemo(() => ({ user, login, loginWithGoogle, register, verifyEmail, logout }), [user, login, loginWithGoogle, register, verifyEmail, logout]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

@@ -44,13 +44,31 @@ export interface MarketOverviewResponse {
   total_verified_hirings: number;
   unique_companies_count: number;
   unique_roles_count: number;
+  most_demanded_role?: string | null;
   top_companies: Array<{ company: string; observed_postings: number; roles_count: number }>;
   most_requested_skills: Array<{ skill: string; observed_postings: number; percentage: number }>;
   employment_type_distribution: Record<string, number>;
   location_distribution: Record<string, number>;
   time_filter_applied: string;
   location_filter_applied: { country?: string; state?: string; city?: string };
+  data_sources?: string | null;
   provenance: DataProvenance;
+}
+
+export interface LiveVacancyCountResponse {
+  status: "available" | "unavailable" | "unconfigured";
+  message?: string | null;
+  count: number | null;
+  location: string;
+  query: string;
+  source: string;
+  retrieved_at?: string | null;
+}
+
+export interface MarketJobsCountResponse {
+  total: number;
+  configured: boolean;
+  message?: string | null;
 }
 
 export interface CompanyMarketSummary {
@@ -160,6 +178,7 @@ export interface MarketFilterParams {
   company?: string;
   role?: string;
   category?: string;
+  skill?: string;
   time_range?: "current" | "last_1_month" | "last_3_months" | "custom" | "all";
   start_date?: string;
   end_date?: string;
@@ -199,6 +218,14 @@ export const marketService = {
 
   getJobs: async (params?: MarketFilterParams): Promise<MarketJobRecord[]> => {
     return apiRequest<MarketJobRecord[]>(`/market/jobs${toQuery(params)}`);
+  },
+
+  getJobsCount: async (params?: MarketFilterParams): Promise<MarketJobsCountResponse> => {
+    return apiRequest<MarketJobsCountResponse>(`/market/jobs/count${toQuery(params)}`);
+  },
+
+  getLiveVacancyCount: async (params?: { location?: string; keyword?: string; country?: string }): Promise<LiveVacancyCountResponse> => {
+    return apiRequest<LiveVacancyCountResponse>(`/market/live-count${toQuery(params)}`);
   },
 
   getSkillDemand: async (params?: MarketFilterParams): Promise<SkillDemandResponse> => {

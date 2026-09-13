@@ -107,7 +107,7 @@ export default function FacultyDashboardPage() {
       {/* Header */}
       <PageHeader
         title="Faculty & Mentor Hub"
-        subtitle="Manage assigned students, evaluate submitted portfolio evidence, and deliver personalized mentoring."
+        description="Manage assigned students, evaluate submitted portfolio evidence, and deliver personalized mentoring."
       />
 
       {/* Stats Overview */}

@@ -9,7 +9,7 @@ import {
   Save,
   RefreshCw,
 } from "lucide-react";
-import { adminService, AdminUserSummary, UserRole } from "../../services/adminService";
+import { adminService, AdminUserSummary, InstitutionVerificationStats, UserRole } from "../../services/adminService";
 
 export const AdminRolesPage: React.FC = () => {
   const [users, setUsers] = useState<AdminUserSummary[]>([]);
@@ -19,6 +19,7 @@ export const AdminRolesPage: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState<string>("");
   const [updatingUid, setUpdatingUid] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [institutionStats, setInstitutionStats] = useState<InstitutionVerificationStats | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -36,6 +37,10 @@ export const AdminRolesPage: React.FC = () => {
   useEffect(() => {
     fetchUsers();
   }, [roleFilter]);
+
+  useEffect(() => {
+    adminService.getInstitutionVerificationStats().then(setInstitutionStats).catch(() => setInstitutionStats(null));
+  }, []);
 
   const handleRoleChange = async (user: AdminUserSummary, newRole: UserRole) => {
     if (!window.confirm(`Update role of ${user.name} (${user.email}) to "${newRole}"?`)) return;
@@ -100,6 +105,28 @@ export const AdminRolesPage: React.FC = () => {
         <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {/* Institution verification analytics - live-computed from real Firestore user documents */}
+      {institutionStats && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <p className="text-xs text-gray-500">Verified institutions</p>
+            <p className="mt-1 text-2xl font-bold text-emerald-600">{institutionStats.verifiedCount}</p>
+          </div>
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <p className="text-xs text-gray-500">Not verified</p>
+            <p className="mt-1 text-2xl font-bold text-amber-600">{institutionStats.notVerifiedCount}</p>
+          </div>
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <p className="text-xs text-gray-500">Distinct institutions</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{institutionStats.distinctVerifiedInstitutions}</p>
+          </div>
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <p className="text-xs text-gray-500">Verification source</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{institutionStats.verificationSource || "—"}</p>
+          </div>
         </div>
       )}
 

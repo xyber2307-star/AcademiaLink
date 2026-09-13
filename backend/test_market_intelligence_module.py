@@ -228,11 +228,13 @@ def test_market_unconfigured_data_source_handling():
     Zero fake data allowed.
     """
     original_aws = market_data_manager.aws_provider
+    original_adzuna = market_data_manager.adzuna_provider
     original_firestore = market_data_manager.firestore_provider
 
     try:
         # Force unconfigured provider
         market_data_manager.aws_provider = MockMarketDataProvider([], configured=False)
+        market_data_manager.adzuna_provider = MockMarketDataProvider([], configured=False)
         market_data_manager.firestore_provider = MockMarketDataProvider([], configured=False)
 
         res = client.get("/api/market/overview")
@@ -268,6 +270,7 @@ def test_market_unconfigured_data_source_handling():
         print("\n[PASS] Unconfigured data source returns transparent message with zero fake data.")
     finally:
         market_data_manager.aws_provider = original_aws
+        market_data_manager.adzuna_provider = original_adzuna
         market_data_manager.firestore_provider = original_firestore
 
 
@@ -281,11 +284,13 @@ def test_location_filtering_and_dynamic_locations():
     """
     sample_jobs = build_sample_market_dataset()
     original_aws = market_data_manager.aws_provider
+    original_adzuna = market_data_manager.adzuna_provider
     original_firestore = market_data_manager.firestore_provider
 
     try:
         market_data_manager.firestore_provider = MockMarketDataProvider(sample_jobs, configured=True)
         market_data_manager.aws_provider = MockMarketDataProvider([], configured=False)
+        market_data_manager.adzuna_provider = MockMarketDataProvider([], configured=False)
 
         # 1. Dynamic Locations Endpoint
         loc_res = client.get("/api/market/locations")
@@ -327,6 +332,7 @@ def test_location_filtering_and_dynamic_locations():
         print("\n[PASS] Location filtering operates dynamically across Country -> State -> City.")
     finally:
         market_data_manager.aws_provider = original_aws
+        market_data_manager.adzuna_provider = original_adzuna
         market_data_manager.firestore_provider = original_firestore
 
 
@@ -338,11 +344,13 @@ def test_time_filters_and_distinguishing_observed_postings_vs_hiring():
     """
     sample_jobs = build_sample_market_dataset()
     original_aws = market_data_manager.aws_provider
+    original_adzuna = market_data_manager.adzuna_provider
     original_firestore = market_data_manager.firestore_provider
 
     try:
         market_data_manager.firestore_provider = MockMarketDataProvider(sample_jobs, configured=True)
         market_data_manager.aws_provider = MockMarketDataProvider([], configured=False)
+        market_data_manager.adzuna_provider = MockMarketDataProvider([], configured=False)
 
         # 1. Current (14 days) -> only m_job_1 (Google), m_job_4 (Microsoft), m_job_7 (Amazon verified hire)
         res_current = client.get("/api/market/overview?time_range=current")
@@ -367,6 +375,7 @@ def test_time_filters_and_distinguishing_observed_postings_vs_hiring():
         print("\n[PASS] Time filters and distinction of observed postings vs verified hiring verified.")
     finally:
         market_data_manager.aws_provider = original_aws
+        market_data_manager.adzuna_provider = original_adzuna
         market_data_manager.firestore_provider = original_firestore
 
 
@@ -378,11 +387,13 @@ def test_company_analytics_and_skill_demand_calculation():
     """
     sample_jobs = build_sample_market_dataset()
     original_aws = market_data_manager.aws_provider
+    original_adzuna = market_data_manager.adzuna_provider
     original_firestore = market_data_manager.firestore_provider
 
     try:
         market_data_manager.firestore_provider = MockMarketDataProvider(sample_jobs, configured=True)
         market_data_manager.aws_provider = MockMarketDataProvider([], configured=False)
+        market_data_manager.adzuna_provider = MockMarketDataProvider([], configured=False)
 
         # 1. Company Analytics for Google
         res_comp = client.get("/api/market/company/Google?time_range=all")
@@ -411,6 +422,7 @@ def test_company_analytics_and_skill_demand_calculation():
         print("\n[PASS] Company analytics and deterministic skill demand percentages verified.")
     finally:
         market_data_manager.aws_provider = original_aws
+        market_data_manager.adzuna_provider = original_adzuna
         market_data_manager.firestore_provider = original_firestore
 
 
@@ -421,6 +433,7 @@ def test_three_month_trend_calculations_and_insufficient_data():
     If insufficient, explicitly show: 'Insufficient historical data for this trend.'
     """
     original_aws = market_data_manager.aws_provider
+    original_adzuna = market_data_manager.adzuna_provider
     original_firestore = market_data_manager.firestore_provider
 
     try:
@@ -428,6 +441,7 @@ def test_three_month_trend_calculations_and_insufficient_data():
         sample_jobs = build_sample_market_dataset()
         market_data_manager.firestore_provider = MockMarketDataProvider(sample_jobs, configured=True)
         market_data_manager.aws_provider = MockMarketDataProvider([], configured=False)
+        market_data_manager.adzuna_provider = MockMarketDataProvider([], configured=False)
 
         res_trend = client.get("/api/market/trends")
         assert res_trend.status_code == 200
@@ -452,6 +466,7 @@ def test_three_month_trend_calculations_and_insufficient_data():
         print("\n[PASS] 3-month trend calculation and 'Insufficient historical data for this trend.' verified.")
     finally:
         market_data_manager.aws_provider = original_aws
+        market_data_manager.adzuna_provider = original_adzuna
         market_data_manager.firestore_provider = original_firestore
 
 
@@ -463,11 +478,13 @@ def test_student_market_skill_gap_and_target_company_marking():
     """
     sample_jobs = build_sample_market_dataset()
     original_aws = market_data_manager.aws_provider
+    original_adzuna = market_data_manager.adzuna_provider
     original_firestore = market_data_manager.firestore_provider
 
     try:
         market_data_manager.firestore_provider = MockMarketDataProvider(sample_jobs, configured=True)
         market_data_manager.aws_provider = MockMarketDataProvider([], configured=False)
+        market_data_manager.adzuna_provider = MockMarketDataProvider([], configured=False)
 
         db = get_db()
         # Seed test student skills in Firestore
@@ -528,4 +545,5 @@ def test_student_market_skill_gap_and_target_company_marking():
         print("\n[PASS] Student market skill-gap (Step 29 reuse) and Target/Dream company preferences verified.")
     finally:
         market_data_manager.aws_provider = original_aws
+        market_data_manager.adzuna_provider = original_adzuna
         market_data_manager.firestore_provider = original_firestore

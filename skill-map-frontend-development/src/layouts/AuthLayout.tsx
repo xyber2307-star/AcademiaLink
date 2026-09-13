@@ -14,7 +14,7 @@ export function AuthLayout() {
           <Link to="/"><Logo light /></Link>
           <div>
             <h2 className="text-4xl font-bold leading-tight text-white">Bridge the gap between <span className="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">campus and career.</span></h2>
-            <p className="mt-4 max-w-md text-slate-300">SKILL MAP connects students, faculty, institutions and industry on one platform for skill mapping, internships and placements.</p>
+            <p className="mt-4 max-w-md text-slate-300">AcademiaLink connects students, faculty, institutions and industry on one platform for skill mapping, internships and placements.</p>
             <ul className="mt-8 space-y-3">
               {points.map((p) => <li key={p} className="flex items-center gap-3 text-sm text-slate-200"><CheckCircle2 className="h-5 w-5 text-emerald-400" />{p}</li>)}
             </ul>

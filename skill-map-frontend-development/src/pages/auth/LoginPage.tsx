@@ -72,7 +72,7 @@ export default function LoginPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Welcome back</h1>
-      <p className="mt-1 text-sm text-slate-500">Sign in to continue to your SKILL MAP dashboard.</p>
+      <p className="mt-1 text-sm text-slate-500">Sign in to continue to your AcademiaLink dashboard.</p>
 
       <div className="mt-6">
         <p className="mb-2 text-sm font-medium text-slate-700">I am a</p>
@@ -104,7 +104,7 @@ export default function LoginPage() {
         <Button variant="outline" type="button" loading={googleLoading} onClick={submitGoogle}>Google</Button>
         <Button variant="outline" type="button" disabled title="DigiLocker integration is not available yet">DigiLocker</Button>
       </div>
-      <p className="mt-6 text-center text-sm text-slate-600">New to SKILL MAP? <Link to="/register" className="font-semibold text-indigo-600 hover:text-indigo-700">Create an account</Link></p>
+      <p className="mt-6 text-center text-sm text-slate-600">New to AcademiaLink? <Link to="/register" className="font-semibold text-indigo-600 hover:text-indigo-700">Create an account</Link></p>
     </div>
   );
 }

@@ -116,7 +116,7 @@ export const mockLearning: LearningResource[] = [
   { id: "l1", title: "Grokking the System Design Interview", provider: "Educative", duration: "24 hrs", level: "Intermediate", skill: "System Design", progress: 35, rating: 4.8, type: "Course" },
   { id: "l2", title: "Docker & Kubernetes: The Complete Guide", provider: "Udemy", duration: "22 hrs", level: "Beginner", skill: "Docker & CI/CD", progress: 0, rating: 4.7, type: "Course" },
   { id: "l3", title: "Total TypeScript", provider: "Matt Pocock", duration: "18 hrs", level: "Intermediate", skill: "TypeScript", progress: 60, rating: 4.9, type: "Course" },
-  { id: "l4", title: "Build a CI/CD Pipeline Project", provider: "SKILL MAP Labs", duration: "8 hrs", level: "Intermediate", skill: "Docker & CI/CD", progress: 0, rating: 4.6, type: "Project" },
+  { id: "l4", title: "Build a CI/CD Pipeline Project", provider: "AcademiaLink Labs", duration: "8 hrs", level: "Intermediate", skill: "Docker & CI/CD", progress: 0, rating: 4.6, type: "Project" },
   { id: "l5", title: "AWS Certified Solutions Architect", provider: "AWS Training", duration: "40 hrs", level: "Intermediate", skill: "Cloud (AWS)", progress: 12, rating: 4.7, type: "Certification" },
   { id: "l6", title: "Testing JavaScript with Jest & RTL", provider: "Kent C. Dodds", duration: "10 hrs", level: "Beginner", skill: "Testing (Jest)", progress: 0, rating: 4.8, type: "Course" },
 ];

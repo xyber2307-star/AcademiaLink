@@ -52,8 +52,12 @@ async def verify_firebase_token(request: Request, authorization: Optional[str] =
 
     try:
         auth_client = get_auth_client()
-        # Verify the ID token using Firebase Admin SDK
-        decoded_token = auth_client.verify_id_token(token)
+        # Verify the ID token using Firebase Admin SDK. clock_skew_seconds defaults to 0 -
+        # meaning zero tolerance for any drift between this server's clock and the token's
+        # issued-at time, so even a legitimate few-second difference (NTP drift, VM clock lag,
+        # network latency between token mint and verification) fails as "Token used too early".
+        # A small tolerance absorbs that without weakening expiry (`exp`) enforcement at all.
+        decoded_token = auth_client.verify_id_token(token, clock_skew_seconds=10)
         return decoded_token
     except Exception as e:
         await check_rate_limit(f"auth:ip:{client_ip}", "auth")

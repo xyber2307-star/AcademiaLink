@@ -27,6 +27,8 @@ import {
   MarketTrendsResponse,
   StudentMarketSkillGapResponse,
   MarketLocationOptionsResponse,
+  MarketJobRecord,
+  LiveVacancyCountResponse,
 } from "../../services/marketService";
 import { Card } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
@@ -35,9 +37,23 @@ import { StatCard } from "../../components/ui/StatCard";
 import { PageHeader } from "../../components/ui/PageHeader";
 
 export function JobMarketIntelligencePage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "companies" | "skills" | "trends" | "gap">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "listings" | "companies" | "skills" | "trends" | "gap">("overview");
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+
+  // Live headline vacancy count (real Adzuna total-match count, independent of our local sample)
+  const [liveCount, setLiveCount] = useState<LiveVacancyCountResponse | null>(null);
+  const [liveCountLoading, setLiveCountLoading] = useState<boolean>(false);
+
+  // Live job listings tab state
+  const [listings, setListings] = useState<MarketJobRecord[]>([]);
+  const [listingsLoading, setListingsLoading] = useState<boolean>(false);
+  const [listingsTotal, setListingsTotal] = useState<number>(0);
+  const [listingsPage, setListingsPage] = useState<number>(0);
+  const [listingsSort, setListingsSort] = useState<"recent" | "company">("recent");
+  const [keywordFilter, setKeywordFilter] = useState<string>("");
+  const [skillFilter, setSkillFilter] = useState<string>("");
+  const LISTINGS_PAGE_SIZE = 12;
 
   // Filters
   const [country, setCountry] = useState<string>("");
@@ -68,7 +84,70 @@ export function JobMarketIntelligencePage() {
 
   useEffect(() => {
     loadData();
+    loadLiveCount();
   }, [country, state, city, timeRange]);
+
+  useEffect(() => {
+    if (activeTab === "listings") {
+      setListingsPage(0);
+      loadListings(0);
+    }
+  }, [activeTab, country, state, city, timeRange, keywordFilter, skillFilter]);
+
+  useEffect(() => {
+    if (activeTab === "listings") {
+      setListings((prev) =>
+        [...prev].sort((a, b) =>
+          listingsSort === "company" ? a.company.localeCompare(b.company) : (b.posted_date || "").localeCompare(a.posted_date || "")
+        )
+      );
+    }
+  }, [listingsSort]);
+
+  const loadLiveCount = async () => {
+    setLiveCountLoading(true);
+    try {
+      const res = await marketService.getLiveVacancyCount({ location: city || state || undefined });
+      setLiveCount(res);
+    } catch (err) {
+      console.error("Failed to load live vacancy count:", err);
+      setLiveCount(null);
+    } finally {
+      setLiveCountLoading(false);
+    }
+  };
+
+  const loadListings = async (page: number) => {
+    setListingsLoading(true);
+    try {
+      const filterParams = {
+        country: country || undefined,
+        state: state || undefined,
+        city: city || undefined,
+        time_range: timeRange,
+        role: keywordFilter || undefined,
+        skill: skillFilter || undefined,
+        limit: LISTINGS_PAGE_SIZE,
+        offset: page * LISTINGS_PAGE_SIZE,
+      };
+      const [jobs, countRes] = await Promise.all([
+        marketService.getJobs(filterParams),
+        marketService.getJobsCount(filterParams),
+      ]);
+      const sorted = [...jobs].sort((a, b) => {
+        if (listingsSort === "company") return a.company.localeCompare(b.company);
+        return (b.posted_date || "").localeCompare(a.posted_date || "");
+      });
+      setListings(sorted);
+      setListingsTotal(countRes.total);
+    } catch (err) {
+      console.error("Failed to load live job listings:", err);
+      setListings([]);
+      setListingsTotal(0);
+    } finally {
+      setListingsLoading(false);
+    }
+  };
 
   const loadLocations = async () => {
     try {
@@ -190,10 +269,10 @@ export function JobMarketIntelligencePage() {
             description="Real-world labor market analytics, company hiring trends & personalized skill-gap mapping"
           />
           {/* Data Provenance Badge */}
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex flex-wrap items-center gap-2 mt-2">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
-              Source: {overview?.provenance?.source || "Authorized Feeds & Firestore"}
+              Data sources: {overview?.data_sources || "Connected job-data providers"}
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400">
               Status:{" "}
@@ -201,6 +280,17 @@ export function JobMarketIntelligencePage() {
                 {isDataAvailable ? "Live Market Data" : isUnconfigured ? "Data Source Not Configured" : "Empty Dataset"}
               </strong>
             </span>
+            {overview?.provenance?.retrieved_at && (
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                Last refreshed:{" "}
+                {new Date(overview.provenance.retrieved_at).toLocaleString("en-IN", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                  timeZone: "Asia/Kolkata",
+                })}{" "}
+                IST
+              </span>
+            )}
           </div>
         </div>
 
@@ -318,6 +408,39 @@ export function JobMarketIntelligencePage() {
         </div>
       </Card>
 
+      {/* Live India Job Market Headline Count (real provider-reported total, not our local sample) */}
+      <Card className="p-5 border-slate-200 dark:border-slate-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-slate-900">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
+              {city || state || "India"} Job Market
+            </h3>
+            {liveCountLoading ? (
+              <p className="text-sm text-slate-500 mt-1">Fetching live job-market data...</p>
+            ) : liveCount?.status === "available" ? (
+              <>
+                <p className="text-3xl font-extrabold text-blue-700 dark:text-blue-400 mt-1">
+                  {liveCount.count?.toLocaleString("en-IN") ?? "—"}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  relevant vacancies found through connected job-data sources (query: "{liveCount.query}")
+                </p>
+              </>
+            ) : liveCount?.status === "unconfigured" ? (
+              <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">Job-data integration is not configured.</p>
+            ) : (
+              <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">Live job data is temporarily unavailable.</p>
+            )}
+          </div>
+          {liveCount?.retrieved_at && (
+            <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">
+              Data refreshed:{" "}
+              {new Date(liveCount.retrieved_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" })} IST
+            </span>
+          )}
+        </div>
+      </Card>
+
       {/* Unconfigured / Empty Notification Banner */}
       {isUnconfigured && (
         <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-900/60 flex items-start gap-3">
@@ -327,8 +450,8 @@ export function JobMarketIntelligencePage() {
               Real market data unavailable — data source not configured.
             </h4>
             <p className="text-amber-800 dark:text-amber-300 mt-0.5">
-              Live market intelligence integration requires authorized AWS OpenSearch / API Gateway or Cloud Firestore feed.
-              In accordance with SIH evaluation rules, no fabricated or synthetic numbers are generated.
+              Live market intelligence integration requires a connected job-data provider (Adzuna Jobs API), authorized AWS feed,
+              or Cloud Firestore market registry. In accordance with SIH evaluation rules, no fabricated or synthetic numbers are generated.
             </p>
           </div>
         </div>
@@ -345,6 +468,16 @@ export function JobMarketIntelligencePage() {
           }`}
         >
           Market Overview
+        </button>
+        <button
+          onClick={() => setActiveTab("listings")}
+          className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+            activeTab === "listings"
+              ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 font-semibold"
+              : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400"
+          }`}
+        >
+          Jobs &amp; Internships
         </button>
         <button
           onClick={() => setActiveTab("companies")}
@@ -396,7 +529,7 @@ export function JobMarketIntelligencePage() {
       {activeTab === "overview" && (
         <div className="space-y-6">
           {/* Top KPI Cards (Distinguishing Observed Postings vs Verified Hiring Data) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <StatCard
               title="Observed Job Postings"
               value={overview?.total_observed_postings ?? 0}
@@ -420,6 +553,12 @@ export function JobMarketIntelligencePage() {
               value={overview?.unique_roles_count ?? 0}
               subtitle="Distinct job titles"
               icon={Layers}
+            />
+            <StatCard
+              title="Most Demanded Role"
+              value={overview?.most_demanded_role || "—"}
+              subtitle="Calculated from live dataset"
+              icon={Star}
             />
           </div>
 
@@ -561,6 +700,133 @@ export function JobMarketIntelligencePage() {
               )}
             </Card>
           </div>
+        </div>
+      )}
+
+      {/* ======================= TAB: JOBS & INTERNSHIPS (LIVE LISTINGS) ======================= */}
+      {activeTab === "listings" && (
+        <div className="space-y-4">
+          <Card className="p-4 border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="relative lg:col-span-2">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  placeholder="Search job title / keyword (e.g. Software Engineer)"
+                  value={keywordFilter}
+                  onChange={(e) => setKeywordFilter(e.target.value)}
+                  className="w-full text-sm pl-9 pr-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Filter by skill (e.g. Python)"
+                value={skillFilter}
+                onChange={(e) => setSkillFilter(e.target.value)}
+                className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <select
+                value={listingsSort}
+                onChange={(e) => setListingsSort(e.target.value as "recent" | "company")}
+                className="text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="recent">Sort: Most Recent</option>
+                <option value="company">Sort: Company Name</option>
+              </select>
+            </div>
+          </Card>
+
+          {listingsLoading ? (
+            <div className="p-12 text-center text-sm text-slate-500">Fetching live job-market data...</div>
+          ) : isUnconfigured ? (
+            <div className="p-12 text-center text-sm text-slate-500">Job-data integration is not configured.</div>
+          ) : listings.length === 0 ? (
+            <div className="p-12 text-center text-sm text-slate-500">No relevant jobs were returned for this search.</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {listings.map((job) => (
+                  <Card key={job.job_id} className="p-4 border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{job.job_title}</h4>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">{job.company}</p>
+                        </div>
+                        <Badge variant="secondary" className="text-[11px] shrink-0">
+                          {job.employment_type}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span>📍 {job.city || job.state || job.country}</span>
+                        {job.posted_date && <span>• Posted {job.posted_date.slice(0, 10)}</span>}
+                      </p>
+                      {job.description && (
+                        <p className="text-xs text-slate-500 mt-2 line-clamp-2">{job.description}</p>
+                      )}
+                      {job.skills && job.skills.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2.5">
+                          {job.skills.slice(0, 6).map((s) => (
+                            <span key={s} className="px-2 py-0.5 rounded text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-[11px] text-slate-400">
+                        Source: {job.source.split(" (")[0]}
+                        {job.retrieved_at && ` • Retrieved ${job.retrieved_at.slice(0, 10)}`}
+                      </span>
+                      {job.source_url ? (
+                        <a href={job.source_url} target="_blank" rel="noopener noreferrer">
+                          <Button size="sm" variant="outline">
+                            View Original <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                          </Button>
+                        </a>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">No source link</span>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-xs text-slate-500">
+                  Showing {listingsPage * LISTINGS_PAGE_SIZE + 1}–{Math.min((listingsPage + 1) * LISTINGS_PAGE_SIZE, listingsTotal)} of {listingsTotal}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={listingsPage === 0}
+                    onClick={() => {
+                      const next = listingsPage - 1;
+                      setListingsPage(next);
+                      loadListings(next);
+                    }}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={(listingsPage + 1) * LISTINGS_PAGE_SIZE >= listingsTotal}
+                    onClick={() => {
+                      const next = listingsPage + 1;
+                      setListingsPage(next);
+                      loadListings(next);
+                    }}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 

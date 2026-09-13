@@ -3,9 +3,12 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone, timedelta
 import logging
 import os
+import re
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
+from firebase_admin import firestore as fb_firestore
 
 from app.firebase import get_db, is_firebase_ready
 from app.models import (
@@ -236,6 +239,456 @@ class AWSMarketDataProvider(BaseMarketDataProvider):
             return []
 
 
+class AdzunaMarketDataProvider(BaseMarketDataProvider):
+    """
+    Adzuna Jobs API provider (https://developer.adzuna.com/) - a real, live third-party
+    job search aggregator covering real postings from thousands of employers.
+    Credentials are read strictly from environment variables (ADZUNA_APP_ID / ADZUNA_APP_KEY)
+    and are never hard-coded or exposed to the frontend.
+
+    Adzuna does not return a structured 'skills' field on job listings, so skills are tagged by
+    matching each posting's real title/description text against the canonical Skill Taxonomy
+    (Firestore collection 'skills' - name + aliases), so "JS"/"Javascript"/"JavaScript" all
+    resolve to the one canonical skill "JavaScript" - never separate/duplicate tags. The
+    postings themselves are always real, live data; only the skill tags are inferred, which is
+    disclosed via each record's 'source' field. Falls back to a small built-in keyword list only
+    if the taxonomy is unavailable, so market intelligence still works before the taxonomy is seeded.
+    """
+
+    BASE_URL = "https://api.adzuna.com/v1/api/jobs"
+    CACHE_TTL_SECONDS = 600  # 10 minutes - avoids re-hitting Adzuna on every dashboard load/tab switch
+    TAXONOMY_CACHE_TTL_SECONDS = 1800  # 30 minutes - taxonomy changes far less often than job listings
+
+    FALLBACK_SKILL_KEYWORDS = [
+        "Python", "Java", "JavaScript", "TypeScript", "C++", "C#", "Go", "Rust",
+        "React", "Angular", "Node.js", "Django", "Flask", "SQL", "AWS", "Docker",
+        "Kubernetes", "Git", "Machine Learning", "Linux", "Cybersecurity", "Networking",
+    ]
+
+    # Terms NOT yet in the canonical taxonomy that are still worth flagging for admin review
+    # when seen repeatedly in real job descriptions (requirement: discover previously unknown
+    # legitimate skills). Deliberately small and curated - this is deterministic keyword
+    # matching, not real NLP-based discovery of arbitrary new terms (see final report).
+    CANDIDATE_REVIEW_TERMS = [
+        "Snowflake", "Databricks", "Airflow", "dbt", "Selenium", "Jest", "JUnit",
+        "Apache Kafka", "Looker", "Segment", "Datadog", "PagerDuty", "Figma",
+        "Terraform", "Ansible", "GraphQL", "gRPC", "WebAssembly",
+    ]
+
+    _taxonomy_cache: Optional[Tuple[float, Dict[str, str]]] = None  # class-level: shared across instances
+
+    def __init__(self):
+        self.app_id = os.getenv("ADZUNA_APP_ID")
+        self.app_key = os.getenv("ADZUNA_APP_KEY")
+        self.country = os.getenv("ADZUNA_COUNTRY", "in")
+        self.query = os.getenv("ADZUNA_SEARCH_QUERY", "software engineer")
+        self.max_pages = int(os.getenv("ADZUNA_MAX_PAGES", "3"))
+        self.results_per_page = 50
+        self._fallback_patterns = [
+            (kw, re.compile(r"(?<![a-z0-9])" + re.escape(kw.lower()) + r"(?![a-z0-9])"))
+            for kw in self.FALLBACK_SKILL_KEYWORDS
+        ]
+        self._jobs_cache: Optional[Tuple[float, List[MarketJobRecord]]] = None
+        self._count_cache: Dict[Tuple[str, str, str], Tuple[float, Optional[int]]] = {}
+
+    def is_configured(self) -> bool:
+        return bool(self.app_id and self.app_key)
+
+    def get_provenance(self) -> DataProvenance:
+        return DataProvenance(
+            source="adzuna_jobs_api",
+            source_url="https://developer.adzuna.com/",
+            data_status="available" if self.is_configured() else "unavailable",
+            retrieved_at=datetime.now(timezone.utc).isoformat(),
+            is_test_data=False,
+        )
+
+    def _load_taxonomy_map(self) -> Dict[str, str]:
+        """
+        Loads {lowercased name/alias -> canonical name} from the live Firestore taxonomy,
+        cached for TAXONOMY_CACHE_TTL_SECONDS. Class-level cache so it's shared and only
+        rebuilt periodically regardless of how many provider instances exist.
+        """
+        now = time.time()
+        cached = AdzunaMarketDataProvider._taxonomy_cache
+        if cached and (now - cached[0]) < self.TAXONOMY_CACHE_TTL_SECONDS:
+            return cached[1]
+
+        mapping: Dict[str, str] = {}
+        try:
+            if is_firebase_ready():
+                for doc in get_db().collection("skills").where("active", "==", True).stream():
+                    data = doc.to_dict() or {}
+                    name = str(data.get("name") or "").strip()
+                    if not name:
+                        continue
+                    mapping[name.lower()] = name
+                    for alias in data.get("aliases") or []:
+                        alias_low = str(alias).strip().lower()
+                        if alias_low:
+                            mapping[alias_low] = name
+        except Exception as e:
+            logger.warning("Could not load skill taxonomy for canonicalization: %s", e)
+
+        if not mapping:
+            # Taxonomy unavailable/empty (e.g. not yet seeded) - fall back to the small built-in list.
+            mapping = {kw.lower(): kw for kw in self.FALLBACK_SKILL_KEYWORDS}
+
+        AdzunaMarketDataProvider._taxonomy_cache = (now, mapping)
+        return mapping
+
+    def _extract_skills(self, text: str) -> List[str]:
+        """
+        Matches real posting text against the canonical taxonomy (name + aliases), so synonyms
+        like "JS"/"Javascript"/"JavaScript" all resolve to the single canonical skill name.
+        Also flags a small curated list of not-yet-canonical terms into a review queue.
+        """
+        if not text:
+            return []
+        lower = text.lower()
+        taxonomy_map = self._load_taxonomy_map()
+
+        found_canonical = set()
+        for term_low, canonical_name in taxonomy_map.items():
+            pattern = re.compile(r"(?<![a-z0-9])" + re.escape(term_low) + r"(?![a-z0-9])")
+            if pattern.search(lower):
+                found_canonical.add(canonical_name)
+
+        self._flag_candidate_review_terms(lower, taxonomy_map, text)
+
+        return sorted(found_canonical)
+
+    def _flag_candidate_review_terms(self, lower_text: str, taxonomy_map: Dict[str, str], original_text: str) -> None:
+        """Best-effort: logs a real, curated candidate term seen in a real posting to the admin review queue."""
+        try:
+            if not is_firebase_ready():
+                return
+            db = get_db()
+            for term in self.CANDIDATE_REVIEW_TERMS:
+                term_low = term.lower()
+                if term_low in taxonomy_map:
+                    continue  # already canonical, not a genuine candidate
+                pattern = re.compile(r"(?<![a-z0-9])" + re.escape(term_low) + r"(?![a-z0-9])")
+                if not pattern.search(lower_text):
+                    continue
+                doc_id = re.sub(r"[^a-z0-9]+", "_", term_low).strip("_")
+                doc_ref = db.collection("skill_review_queue").document(doc_id)
+                snap = doc_ref.get()
+                now_iso = datetime.now(timezone.utc).isoformat()
+                if snap.exists:
+                    existing = snap.to_dict() or {}
+                    if existing.get("status", "pending") != "pending":
+                        continue
+                    doc_ref.update({"occurrences": fb_firestore.Increment(1), "updatedAt": now_iso})
+                else:
+                    snippet = original_text[:200]
+                    doc_ref.set({
+                        "term": term,
+                        "occurrences": 1,
+                        "example_context": snippet,
+                        "status": "pending",
+                        "createdAt": now_iso,
+                        "updatedAt": now_iso,
+                    })
+        except Exception as e:
+            logger.warning("Could not update skill review queue: %s", e)
+
+    def _firestore_cache_doc(self):
+        """Returns the Firestore doc ref used to persist the Adzuna jobs cache, or None if Firestore is unavailable."""
+        try:
+            if not is_firebase_ready():
+                return None
+            return get_db().collection("market_cache").document("adzuna_jobs")
+        except Exception as e:
+            logger.warning("Could not access Firestore market cache: %s", e)
+            return None
+
+    def _load_jobs_from_firestore_cache(self) -> Optional[List[MarketJobRecord]]:
+        """Reads the persistent job cache from Firestore if it exists and is still within the TTL window."""
+        doc_ref = self._firestore_cache_doc()
+        if not doc_ref:
+            return None
+        try:
+            doc = doc_ref.get()
+            if not doc.exists:
+                return None
+            data = doc.to_dict() or {}
+            retrieved_at = data.get("retrieved_at")
+            if not retrieved_at:
+                return None
+            cached_dt = datetime.fromisoformat(retrieved_at.replace("Z", "+00:00"))
+            age_seconds = (datetime.now(timezone.utc) - cached_dt).total_seconds()
+            if age_seconds >= self.CACHE_TTL_SECONDS:
+                return None
+            raw_jobs = data.get("jobs") or []
+            return [MarketJobRecord(**job) for job in raw_jobs]
+        except Exception as e:
+            logger.warning("Failed reading Firestore Adzuna jobs cache: %s", e)
+            return None
+
+    def _save_jobs_to_firestore_cache(self, records: List[MarketJobRecord]) -> None:
+        """Persists a freshly-fetched job list to Firestore so the cache survives backend restarts."""
+        doc_ref = self._firestore_cache_doc()
+        if not doc_ref:
+            return
+        try:
+            retrieved_at = datetime.now(timezone.utc).isoformat()
+            doc_ref.set({
+                "jobs": [job.model_dump() for job in records],
+                "retrieved_at": retrieved_at,
+                "query": self.query,
+                "country": self.country,
+            })
+            self._write_market_snapshot(records, retrieved_at)
+        except Exception as e:
+            logger.warning("Failed writing Firestore Adzuna jobs cache: %s", e)
+
+    def _write_market_snapshot(self, records: List[MarketJobRecord], retrieved_at: str) -> None:
+        """Appends a lightweight historical snapshot (job-search history) for trend/audit purposes."""
+        try:
+            if not is_firebase_ready():
+                return
+            skill_counter: Counter = Counter()
+            role_counter: Counter = Counter()
+            for job in records:
+                for s in job.skills:
+                    skill_counter[s] += 1
+                if job.job_title:
+                    role_counter[job.job_title] += 1
+            get_db().collection("market_snapshots").document().set({
+                "total_jobs": len(records),
+                "top_skills": [{"skill": s, "count": c} for s, c in skill_counter.most_common(10)],
+                "top_roles": [{"role": r, "count": c} for r, c in role_counter.most_common(10)],
+                "source": "adzuna_jobs_api",
+                "query": self.query,
+                "country": self.country,
+                "retrieved_at": retrieved_at,
+            })
+        except Exception as e:
+            logger.warning("Failed writing market snapshot: %s", e)
+
+    def fetch_market_jobs(self) -> List[MarketJobRecord]:
+        if not self.is_configured():
+            logger.info("Adzuna Market Data Provider not configured (ADZUNA_APP_ID/ADZUNA_APP_KEY not set).")
+            return []
+
+        now = time.time()
+        if self._jobs_cache and (now - self._jobs_cache[0]) < self.CACHE_TTL_SECONDS:
+            return self._jobs_cache[1]
+
+        firestore_cached = self._load_jobs_from_firestore_cache()
+        if firestore_cached is not None:
+            self._jobs_cache = (now, firestore_cached)
+            return firestore_cached
+
+        records: List[MarketJobRecord] = []
+        try:
+            with httpx.Client(timeout=15.0) as client:
+                for page in range(1, self.max_pages + 1):
+                    url = f"{self.BASE_URL}/{self.country}/search/{page}"
+                    params = {
+                        "app_id": self.app_id,
+                        "app_key": self.app_key,
+                        "results_per_page": self.results_per_page,
+                        "what": self.query,
+                        "content-type": "application/json",
+                    }
+                    response = client.get(url, params=params)
+                    if response.status_code != 200:
+                        logger.warning("Adzuna API returned status %s on page %s", response.status_code, page)
+                        break
+                    payload = response.json()
+                    results = payload.get("results", [])
+                    if not results:
+                        break
+                    for item in results:
+                        record = self._normalize_job(item)
+                        if record:
+                            records.append(record)
+                    if len(results) < self.results_per_page:
+                        break
+        except Exception as e:
+            logger.error("Error communicating with Adzuna API: %s", e)
+            if self._jobs_cache:
+                return self._jobs_cache[1]
+            # Fall back to a (possibly stale) Firestore cache during an outage rather than
+            # showing nothing - each record still carries its own true retrieved_at, so the
+            # UI can honestly disclose how old the data is instead of fabricating a fresh look.
+            stale_doc_ref = self._firestore_cache_doc()
+            if stale_doc_ref:
+                try:
+                    doc = stale_doc_ref.get()
+                    if doc.exists:
+                        raw_jobs = (doc.to_dict() or {}).get("jobs") or []
+                        return [MarketJobRecord(**job) for job in raw_jobs]
+                except Exception:
+                    pass
+            return []
+
+        self._jobs_cache = (now, records)
+        if records:
+            self._save_jobs_to_firestore_cache(records)
+        return records
+
+    def get_live_count(
+        self, country: Optional[str] = None, location: Optional[str] = None, keyword: Optional[str] = None
+    ) -> Tuple[Optional[int], Optional[str]]:
+        """
+        Single lightweight Adzuna call (results_per_page=1) returning the provider's own reported
+        total-match count for a location/keyword - the real headline vacancy count, distinct from
+        the locally paginated sample used for skill/company analytics. Cached per (country, location,
+        keyword) to respect Adzuna's rate limits. Returns (count, error_message).
+        """
+        if not self.is_configured():
+            return None, "Job-data integration is not configured."
+
+        country_code = (country or self.country or "in").lower()
+        keyword_val = keyword or self.query
+        cache_key = (country_code, (location or "").strip().lower(), keyword_val.strip().lower())
+        doc_id = re.sub(r"[^a-z0-9]+", "_", "_".join(cache_key)).strip("_") or "default"
+
+        now = time.time()
+        cached = self._count_cache.get(cache_key)
+        if cached and (now - cached[0]) < self.CACHE_TTL_SECONDS:
+            return cached[1], None
+
+        firestore_cached = self._load_count_from_firestore(doc_id)
+        if firestore_cached is not None:
+            self._count_cache[cache_key] = (now, firestore_cached)
+            return firestore_cached, None
+
+        try:
+            params = {
+                "app_id": self.app_id,
+                "app_key": self.app_key,
+                "results_per_page": 1,
+                "what": keyword_val,
+                "content-type": "application/json",
+            }
+            if location:
+                params["where"] = location
+
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(f"{self.BASE_URL}/{country_code}/search/1", params=params)
+
+            if response.status_code != 200:
+                logger.warning("Adzuna live-count call returned status %s", response.status_code)
+                return None, "Live job data is temporarily unavailable."
+
+            count = response.json().get("count")
+            self._count_cache[cache_key] = (now, count)
+            self._save_count_to_firestore(doc_id, count, location, keyword_val, country_code)
+            return count, None
+        except Exception as e:
+            logger.error("Error fetching Adzuna live count: %s", e)
+            stale = self._load_count_from_firestore(doc_id, ignore_ttl=True)
+            if stale is not None:
+                return stale, None
+            return None, "Live job data is temporarily unavailable."
+
+    def _load_count_from_firestore(self, doc_id: str, ignore_ttl: bool = False) -> Optional[int]:
+        try:
+            if not is_firebase_ready():
+                return None
+            doc = get_db().collection("market_cache").document("adzuna_live_counts").collection("entries").document(doc_id).get()
+            if not doc.exists:
+                return None
+            data = doc.to_dict() or {}
+            if not ignore_ttl:
+                retrieved_at = data.get("retrieved_at")
+                if not retrieved_at:
+                    return None
+                cached_dt = datetime.fromisoformat(retrieved_at.replace("Z", "+00:00"))
+                if (datetime.now(timezone.utc) - cached_dt).total_seconds() >= self.CACHE_TTL_SECONDS:
+                    return None
+            return data.get("count")
+        except Exception as e:
+            logger.warning("Failed reading Firestore live-count cache: %s", e)
+            return None
+
+    def _save_count_to_firestore(self, doc_id: str, count: Optional[int], location: Optional[str], keyword: str, country: str) -> None:
+        try:
+            if not is_firebase_ready():
+                return
+            get_db().collection("market_cache").document("adzuna_live_counts").collection("entries").document(doc_id).set({
+                "count": count,
+                "location": location or "India",
+                "query": keyword,
+                "country": country,
+                "retrieved_at": datetime.now(timezone.utc).isoformat(),
+            })
+        except Exception as e:
+            logger.warning("Failed writing Firestore live-count cache: %s", e)
+
+    def _normalize_job(self, item: Dict[str, Any]) -> Optional[MarketJobRecord]:
+        try:
+            job_id = str(item.get("id") or "").strip()
+            title = str(item.get("title") or "").strip()
+            company = str((item.get("company") or {}).get("display_name") or "").strip()
+            if not job_id or not title or not company:
+                return None
+
+            location = item.get("location") or {}
+            # Adzuna's 'area' is ordered broad -> narrow, e.g. ["India", "Karnataka", "Bangalore"].
+            # With only 2 levels there is no distinct city - leave it unset rather than
+            # duplicating the state into the city field.
+            area = [a for a in (location.get("area") or []) if a]
+            country = area[0] if len(area) > 0 else "India"
+            state = area[1] if len(area) > 1 else None
+            city = area[2] if len(area) > 2 else None
+
+            description = str(item.get("description") or "")
+            skills = self._extract_skills(f"{title} {description}")
+            required_skills = [
+                RequiredSkill(name=skill, required_proficiency=3.0, weight=1.0) for skill in skills
+            ]
+
+            contract_time = item.get("contract_time")
+            contract_type = item.get("contract_type")
+            if contract_time == "full_time":
+                employment_type = "Full-time"
+            elif contract_time == "part_time":
+                employment_type = "Part-time"
+            elif contract_type:
+                employment_type = str(contract_type).replace("_", " ").title()
+            else:
+                employment_type = "Full-time"
+
+            source_url = item.get("redirect_url")
+
+            return MarketJobRecord(
+                job_id=f"adzuna_{job_id}",
+                company=company,
+                job_title=title,
+                country=country,
+                state=state,
+                city=city,
+                description=description,
+                skills=skills,
+                required_skills=required_skills,
+                preferred_skills=[],
+                experience="0-2 years",
+                employment_type=employment_type,
+                posted_date=item.get("created"),
+                closing_date=None,
+                source="Adzuna Jobs API (skills heuristically tagged from live posting text)",
+                source_url=source_url,
+                data_type="observed_posting",
+                retrieved_at=datetime.now(timezone.utc).isoformat(),
+                updated_at=datetime.now(timezone.utc).isoformat(),
+                provenance=DataProvenance(
+                    source="adzuna_jobs_api",
+                    source_url=source_url,
+                    data_status="available",
+                    retrieved_at=datetime.now(timezone.utc).isoformat(),
+                    is_test_data=False,
+                ),
+            )
+        except Exception as err:
+            logger.warning("Failed normalizing Adzuna record %s: %s", item.get("id"), err)
+            return None
+
+
 class MarketDataManager:
     """
     Central Manager orchestrating data ingestion, normalization, multi-tenant caching,
@@ -245,26 +698,45 @@ class MarketDataManager:
     def __init__(self):
         self.firestore_provider = FirestoreMarketDataProvider()
         self.aws_provider = AWSMarketDataProvider()
+        self.adzuna_provider = AdzunaMarketDataProvider()
 
     def get_all_jobs(self) -> Tuple[List[MarketJobRecord], bool, str]:
         """
-        Retrieves all market jobs from available configured providers.
+        Retrieves all market jobs from available configured providers, combining every
+        source that returns data so live Adzuna postings and any manually-curated
+        Firestore verified-hiring records can coexist.
         Returns: (jobs_list, is_configured, status_message)
         """
-        # If AWS provider is explicitly configured, query it first
+        combined: List[MarketJobRecord] = []
+        sources_used: List[str] = []
+
         if self.aws_provider.is_configured():
             aws_jobs = self.aws_provider.fetch_market_jobs()
             if aws_jobs:
-                return aws_jobs, True, "Data supplied by authorized AWS Market Data Feed"
+                combined.extend(aws_jobs)
+                sources_used.append("authorized AWS Market Data Feed")
 
-        # Query Cloud Firestore 'market_jobs' collection
+        if self.adzuna_provider.is_configured():
+            adzuna_jobs = self.adzuna_provider.fetch_market_jobs()
+            if adzuna_jobs:
+                combined.extend(adzuna_jobs)
+                sources_used.append("Adzuna Jobs API")
+
         if self.firestore_provider.is_configured():
             firestore_jobs = self.firestore_provider.fetch_market_jobs()
             if firestore_jobs:
-                return firestore_jobs, True, "Data supplied by Cloud Firestore Market Registry"
+                combined.extend(firestore_jobs)
+                sources_used.append("Cloud Firestore Market Registry")
 
-        # Neither AWS is configured nor Firestore market_jobs has data
-        if not self.aws_provider.is_configured() and not self.firestore_provider.fetch_market_jobs():
+        if combined:
+            return combined, True, f"Data supplied by {', '.join(sources_used)}"
+
+        any_configured = (
+            self.aws_provider.is_configured()
+            or self.adzuna_provider.is_configured()
+            or self.firestore_provider.is_configured()
+        )
+        if not any_configured:
             return [], False, "Real market data unavailable — data source not configured."
 
         return [], True, "Data source configured but 0 market postings found matching criteria."
@@ -278,11 +750,12 @@ class MarketDataManager:
         company: Optional[str] = None,
         role: Optional[str] = None,
         category: Optional[str] = None,
+        skill: Optional[str] = None,
         time_range: Optional[str] = "last_3_months",
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
     ) -> List[MarketJobRecord]:
-        """Deterministically filters market job postings by location, company, role, and posting date."""
+        """Deterministically filters market job postings by location, company, role, skill, and posting date."""
         filtered = list(jobs)
 
         if country:
@@ -310,6 +783,14 @@ class MarketDataManager:
             filtered = [
                 j for j in filtered
                 if any(cat_low in s.lower() for s in j.skills) or (j.description and cat_low in j.description.lower())
+            ]
+
+        if skill:
+            sk_low = skill.strip().lower()
+            filtered = [
+                j for j in filtered
+                if any(sk_low == s.lower() for s in j.skills)
+                or any(sk_low == rs.name.lower() for rs in j.required_skills)
             ]
 
         # Time range filtering
@@ -442,6 +923,9 @@ class MarketDataManager:
         unique_companies = len(set(j.company for j in filtered))
         unique_roles = len(set(j.job_title for j in filtered))
 
+        role_counter = Counter(j.job_title for j in filtered if j.job_title)
+        most_demanded_role = role_counter.most_common(1)[0][0] if role_counter else None
+
         # Top companies
         comp_counter = Counter(j.company for j in filtered)
         comp_roles = defaultdict(set)
@@ -494,12 +978,14 @@ class MarketDataManager:
             total_verified_hirings=hiring_count,
             unique_companies_count=unique_companies,
             unique_roles_count=unique_roles,
+            most_demanded_role=most_demanded_role,
             top_companies=top_companies,
             most_requested_skills=most_requested_skills,
             employment_type_distribution=emp_dist,
             location_distribution=loc_dist,
             time_filter_applied=time_range or "all",
             location_filter_applied={"country": country, "state": state, "city": city},
+            data_sources=msg,
             provenance=DataProvenance(
                 source="market_intelligence_service",
                 data_status="available",
@@ -832,6 +1318,50 @@ class MarketDataManager:
         cities = sorted(list(set(j.city for j in all_jobs if j.city)))
 
         return MarketLocationOptionsResponse(countries=countries, states=states, cities=cities)
+
+    def get_live_vacancy_count(
+        self,
+        location: Optional[str] = None,
+        keyword: Optional[str] = None,
+        country: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Headline live vacancy count for a location, e.g. for an "India Job Market" or
+        per-city view. Returns the provider's OWN reported total-match count (real API data),
+        never a locally fabricated or estimated number.
+        """
+        if not self.adzuna_provider.is_configured():
+            return {
+                "status": "unconfigured",
+                "message": "Job-data integration is not configured.",
+                "count": None,
+                "location": location or "India",
+                "query": keyword or self.adzuna_provider.query,
+                "source": "adzuna_jobs_api",
+                "retrieved_at": None,
+            }
+
+        count, err = self.adzuna_provider.get_live_count(country=country, location=location, keyword=keyword)
+        if err:
+            return {
+                "status": "unavailable",
+                "message": err,
+                "count": None,
+                "location": location or "India",
+                "query": keyword or self.adzuna_provider.query,
+                "source": "adzuna_jobs_api",
+                "retrieved_at": None,
+            }
+
+        return {
+            "status": "available",
+            "message": None,
+            "count": count,
+            "location": location or "India",
+            "query": keyword or self.adzuna_provider.query,
+            "source": "adzuna_jobs_api",
+            "retrieved_at": datetime.now(timezone.utc).isoformat(),
+        }
 
     def compute_student_market_gap(
         self,

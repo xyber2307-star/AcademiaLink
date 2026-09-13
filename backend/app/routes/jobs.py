@@ -6,17 +6,18 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.auth import get_current_user, require_recruiter
 from app.firebase import get_db
 from app.models import JobCreate, JobResponse, UserProfileResponse
+from app.rate_limit import require_public_rate_limit
 
 logger = logging.getLogger("academialink.jobs")
 
 router = APIRouter(prefix="/jobs", tags=["Jobs & Internships"])
 
 
-@router.get("", response_model=List[JobResponse], summary="List all jobs and internships")
+@router.get("", response_model=List[JobResponse], summary="List all jobs and internships", dependencies=[Depends(require_public_rate_limit)])
 async def list_jobs(
-    type: Optional[str] = Query(None, description="Filter by type: Internship, Full-time, etc."),
-    workMode: Optional[str] = Query(None, description="Filter by workMode: Remote, Hybrid, On-site"),
-    company: Optional[str] = Query(None, description="Filter by company name"),
+    type: Optional[str] = Query(None, max_length=150, description="Filter by type: Internship, Full-time, etc."),
+    workMode: Optional[str] = Query(None, max_length=150, description="Filter by workMode: Remote, Hybrid, On-site"),
+    company: Optional[str] = Query(None, max_length=150, description="Filter by company name"),
 ):
     """Retrieve all available job and internship postings from the Firestore 'jobs' collection."""
     try:
@@ -54,7 +55,7 @@ async def list_jobs(
         )
 
 
-@router.get("/{job_id}", response_model=JobResponse, summary="Get details for a specific job")
+@router.get("/{job_id}", response_model=JobResponse, summary="Get details for a specific job", dependencies=[Depends(require_public_rate_limit)])
 async def get_job_by_id(job_id: str):
     """Retrieve details of a specific job by its ID."""
     try:

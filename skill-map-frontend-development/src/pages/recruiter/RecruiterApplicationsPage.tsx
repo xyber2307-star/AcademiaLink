@@ -1,21 +1,12 @@
 import React, { useState, useEffect } from "react";
-import {
-  Users,
-  Briefcase,
-  Search,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Clock,
-  Send,
-  Building2,
-  RefreshCw,
-} from "lucide-react";
+import { Users, Briefcase, AlertCircle, RefreshCw } from "lucide-react";
 import { applicationService, JobApplication, ApplicationStatus } from "../../services/applicationService";
-import { recruiterService, RecruiterJob } from "../../services/recruiterService";
+import { recruiterService } from "../../services/recruiterService";
+
+interface RecruiterJobSummary { job_id?: string; id?: string; title: string; status?: string }
 
 export const RecruiterApplicationsPage: React.FC = () => {
-  const [jobs, setJobs] = useState<RecruiterJob[]>([]);
+  const [jobs, setJobs] = useState<RecruiterJobSummary[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +19,7 @@ export const RecruiterApplicationsPage: React.FC = () => {
     // Load recruiter's jobs
     setLoading(true);
     recruiterService
-      .getMyJobs()
+      .getRecruiterJobs()
       .then((data) => {
         setJobs(data || []);
         if (data && data.length > 0) {

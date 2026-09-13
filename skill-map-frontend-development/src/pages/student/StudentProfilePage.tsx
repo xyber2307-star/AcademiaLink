@@ -10,6 +10,8 @@ import { PageSkeleton } from "../../components/ui/Skeleton";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { useFetch } from "../../hooks/useFetch";
 import { studentService } from "../../services/studentService";
+import { EditProfileModal } from "../../components/profile/EditProfileModal";
+import type { MyProfile } from "../../services/userService";
 import type { Skill } from "../../types";
 import { cn } from "../../utils/cn";
 
@@ -23,10 +25,12 @@ const completionItems = [
 
 export default function StudentProfilePage() {
   const [tab, setTab] = useState<Tab>("Overview");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { data, loading } = useFetch(async () => {
     const [profile, skills] = await Promise.all([studentService.getProfile(), studentService.getSkills()]);
     return { profile, skills };
-  });
+  }, [refreshKey]);
 
   const [skillsList, setSkillsList] = useState<Skill[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -90,7 +94,7 @@ export default function StudentProfilePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="My Profile" description="Your public skill profile visible to recruiters and faculty." actions={<><Button variant="outline" icon={<Share2 className="h-4 w-4" />}>Share</Button><Button variant="outline" icon={<Download className="h-4 w-4" />}>Export résumé</Button><Button icon={<Edit3 className="h-4 w-4" />}>Edit profile</Button></>} />
+      <PageHeader title="My Profile" description="Your public skill profile visible to recruiters and faculty." actions={<><Button variant="outline" icon={<Share2 className="h-4 w-4" />}>Share</Button><Button variant="outline" icon={<Download className="h-4 w-4" />}>Export résumé</Button><Button icon={<Edit3 className="h-4 w-4" />} onClick={() => setIsEditModalOpen(true)}>Edit profile</Button></>} />
 
       {/* Header card */}
       <Card className="overflow-hidden">
@@ -105,7 +109,23 @@ export default function StudentProfilePage() {
               <div className="sm:pb-1">
                 <div className="flex flex-wrap items-center gap-2"><h2 className="text-2xl font-bold text-slate-900">{profile.name}</h2><Badge tone="emerald"><BadgeCheck className="h-3.5 w-3.5" /> Verified student</Badge></div>
                 <p className="mt-0.5 text-sm font-medium text-indigo-600">{profile.headline}</p>
-                <p className="mt-1 text-sm text-slate-500">{profile.degree} · {profile.branch} · {profile.year} · {profile.institution}</p>
+                <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
+                  <span>{profile.degree} · {profile.branch} · {profile.year} · {profile.institution}</span>
+                  {profile.institutionVerificationStatus === "VERIFIED" && (
+                    <Badge tone="emerald" title={`Institution registry verified · Source: ${profile.institutionVerificationSource || "AICTE"} · Program-level approval not checked.`}>
+                      <BadgeCheck className="h-3.5 w-3.5" /> Institution Verified
+                    </Badge>
+                  )}
+                  {profile.institutionVerificationStatus === "NOT_VERIFIED" && profile.institution && (
+                    <span className="text-xs font-medium text-amber-600">Not Verified</span>
+                  )}
+                </p>
+                {profile.institutionVerificationStatus === "VERIFIED" && (
+                  <p className="text-xs text-slate-400">
+                    {[profile.institutionDistrict, profile.institutionState].filter(Boolean).join(", ")}
+                    {profile.institutionCode ? ` · AICTE ID: ${profile.institutionCode}` : ""}
+                  </p>
+                )}
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500">
                   <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{profile.location}</span>
                   <span className="inline-flex items-center gap-1"><Mail className="h-3.5 w-3.5" />{profile.email}</span>
@@ -382,6 +402,15 @@ export default function StudentProfilePage() {
             </form>
           </div>
         </div>
+      )}
+
+      {isEditModalOpen && (
+        <EditProfileModal
+          profile={profile as unknown as MyProfile}
+          role="student"
+          onClose={() => setIsEditModalOpen(false)}
+          onSaved={() => setRefreshKey((k) => k + 1)}
+        />
       )}
     </div>
   );

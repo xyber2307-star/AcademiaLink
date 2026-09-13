@@ -64,16 +64,20 @@ export const authService = {
       await updateProfile(fbUser, { displayName: payload.name });
     }
 
-    // 2. Initialize and verify profile on FastAPI backend (PUT /api/users/me)
+    // 2. Finalize the chosen role/name/institution on the FastAPI backend. This is a
+    // dedicated one-time endpoint (PUT /api/users/me/register), not the general-purpose
+    // PUT /api/users/me - that endpoint deliberately has no `role` field at all, so a
+    // student can never PATCH their own way into a different role after signup.
     const profile = await apiRequest<{
       uid: string;
       email: string;
       name: string;
       role: UserRole;
-    }>("/users/me", {
+    }>("/users/me/register", {
       method: "PUT",
       body: JSON.stringify({
         name: payload.name,
+        role: payload.role,
         institution: payload.institution || "",
       }),
     });

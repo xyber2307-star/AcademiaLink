@@ -104,7 +104,11 @@ def test_input_validation():
             headers={"Authorization": "Bearer mock_token"},
             json={"title": "My Project", "type": "project", "project_url": "ftp://bad-url.com"},
         )
-        assert resp_invalid_url.status_code == 400, f"Expected 400, got {resp_invalid_url.status_code}"
+        # Non-http(s) URL schemes are now rejected at the schema layer (422) via a strict
+        # pattern on EvidenceCreate.project_url, rather than by a business-logic check after
+        # Pydantic already accepted the payload (which returned 400) - both are "rejected
+        # outright", just at different layers, so accept either.
+        assert resp_invalid_url.status_code in [400, 422], f"Expected 400/422, got {resp_invalid_url.status_code}"
 
         # Valid payload
         resp_valid = client.post(
@@ -177,7 +181,7 @@ def test_evidence_lifecycle_and_verification_integrity():
             "email": f"alpha_{run_id}@academialink.edu",
         }
 
-        create_payload = {
+        malicious_payload = {
             "type": "project",
             "title": "High-Throughput Ingestion Engine",
             "description": "Engineered distributed streaming pipeline handling 10k events/sec.",
@@ -190,6 +194,28 @@ def test_evidence_lifecycle_and_verification_integrity():
             "verification_notes": "Self approved by student",
         }
 
+        # STRICT SCHEMA ENFORCEMENT: verification_status/reviewer_id/verification_notes are not
+        # declared on EvidenceCreate at all, and the schema rejects (422) any undeclared field
+        # outright rather than silently accepting the request and dropping them - an even
+        # stronger defense against self-approval than silently ignoring the attempt.
+        malicious_resp = client.post(
+            "/api/evidence/me",
+            headers={"Authorization": "Bearer mock_token"},
+            json=malicious_payload,
+        )
+        assert malicious_resp.status_code == 422, (
+            f"SECURITY VIOLATION: A create payload smuggling verification_status/reviewer_id "
+            f"must be rejected outright, got {malicious_resp.status_code}: {malicious_resp.text}"
+        )
+        rejected_fields = {err["loc"][-1] for err in malicious_resp.json()["detail"]}
+        assert {"verification_status", "reviewer_id", "verification_notes"} <= rejected_fields, (
+            "Expected all three self-approval fields to be rejected as extra/undeclared inputs"
+        )
+        print("[PASS] Privilege escalation prevented: self-approval payload rejected outright (422), not silently sanitized.")
+
+        # Now create the evidence with a clean, legitimate payload so the rest of this test
+        # (lifecycle, cross-user isolation) can proceed against a real record.
+        create_payload = {k: v for k, v in malicious_payload.items() if k not in rejected_fields}
         create_resp = client.post(
             "/api/evidence/me",
             headers={"Authorization": "Bearer mock_token"},
@@ -200,13 +226,14 @@ def test_evidence_lifecycle_and_verification_integrity():
         ev_id = data["evidence_id"]
         assert ev_id, "Response must include evidence_id"
 
-        # VERIFICATION INTEGRITY: Must be 'pending', not 'approved', and reviewer fields must be empty
+        # VERIFICATION INTEGRITY: A legitimate submission must still default to 'pending', not
+        # 'approved', with no reviewer attached.
         assert data["verification_status"] == "pending", (
             f"SECURITY VIOLATION: Submissions must default to 'pending', got '{data['verification_status']}'"
         )
         assert data["reviewer_id"] is None, "Student must not be able to set reviewer_id"
         assert data["verification_notes"] == "", "Student must not be able to set verification_notes"
-        print("[PASS] Privilege escalation prevented: Self-approval attempt defaulted to 'pending'.")
+        print("[PASS] Legitimate submission correctly defaults to 'pending' with no reviewer.")
 
         # 3. ZERO ARTIFICIAL SKILL INFLATION CHECK
         # Verify Python skill in users/{uid}/skills remains strictly 2.0
@@ -235,14 +262,28 @@ def test_evidence_lifecycle_and_verification_integrity():
         assert get_resp.json()["title"] == "High-Throughput Ingestion Engine"
         print(f"[PASS] GET /api/evidence/me/{ev_id} retrieved successfully.")
 
-        # 6. Student A updates evidence: Attempt to set status to 'approved' via PUT
-        update_resp = client.put(
+        # 6. Student A updates evidence: Attempt to set status to 'approved' via PUT.
+        # EvidenceUpdate now uses extra="forbid", so this is rejected outright at the
+        # schema layer (422) instead of being silently dropped by route logic.
+        malicious_update_resp = client.put(
             f"/api/evidence/me/{ev_id}",
             headers={"Authorization": "Bearer mock_token"},
             json={
                 "title": "High-Throughput Ingestion Engine (v2)",
                 "verification_status": "approved",
             },
+        )
+        assert malicious_update_resp.status_code == 422
+        assert "verification_status" in str(malicious_update_resp.json()), (
+            "SECURITY VIOLATION: PUT request must not allow students to set status to approved!"
+        )
+        print("[PASS] Privilege escalation via PUT prevented: verification_status field rejected outright (422).")
+
+        # Clean update (no smuggled fields) should succeed and still leave status untouched.
+        update_resp = client.put(
+            f"/api/evidence/me/{ev_id}",
+            headers={"Authorization": "Bearer mock_token"},
+            json={"title": "High-Throughput Ingestion Engine (v2)"},
         )
         assert update_resp.status_code == 200
         assert update_resp.json()["title"] == "High-Throughput Ingestion Engine (v2)"

@@ -9,9 +9,11 @@ from app.models import (
     AdminRoleUpdateRequest,
     AdminUserSummary,
     DataProvenance,
+    InstitutionVerificationStatsResponse,
     UserProfileResponse,
     UserRole,
 )
+from app.rate_limit import check_user_rate_limit
 
 logger = logging.getLogger("academialink.admin")
 
@@ -97,6 +99,7 @@ async def update_user_role(
     - Normal students, faculty, and recruiters cannot access this endpoint.
     - Prevents self-demoting the executing administrator if they are the only admin.
     """
+    await check_user_rate_limit(current_user.uid, "admin_role_change")
     db = get_db()
     user_ref = db.collection("users").document(target_uid)
     user_snap = user_ref.get()
@@ -144,4 +147,51 @@ async def update_user_role(
         department=user_data.get("department", ""),
         created_at=user_data.get("createdAt", ""),
         provenance=DataProvenance(source="identity_provider", data_status="available"),
+    )
+
+
+@router.get(
+    "/institution-verification-stats",
+    response_model=InstitutionVerificationStatsResponse,
+    summary="Aggregate institution-verification stats across all users (Admin only)",
+)
+async def get_institution_verification_stats(
+    current_user: UserProfileResponse = Depends(require_admin),
+):
+    """
+    Computed live from real users/{uid} documents every call - no cached/fake figures.
+    See docs/INSTITUTION_VERIFICATION.md for what VERIFIED/NOT_VERIFIED/SOURCE_UNAVAILABLE mean.
+    """
+    db = get_db()
+    verified_count = 0
+    not_verified_count = 0
+    source_unavailable_count = 0
+    total_with_institution = 0
+    verified_codes: set[str] = set()
+
+    for doc in db.collection("users").stream():
+        data = doc.to_dict() or {}
+        institution = data.get("institution")
+        institution_status = data.get("institutionVerificationStatus")
+        if not institution and not institution_status:
+            continue
+        total_with_institution += 1
+        if institution_status == "VERIFIED":
+            verified_count += 1
+            code = data.get("institutionCode")
+            if code:
+                verified_codes.add(code)
+        elif institution_status == "SOURCE_UNAVAILABLE":
+            source_unavailable_count += 1
+        else:
+            not_verified_count += 1
+
+    return InstitutionVerificationStatsResponse(
+        totalUsersWithInstitution=total_with_institution,
+        verifiedCount=verified_count,
+        notVerifiedCount=not_verified_count,
+        sourceUnavailableCount=source_unavailable_count,
+        distinctVerifiedInstitutions=len(verified_codes),
+        verificationSource="AICTE",
+        computedAt=datetime.now(timezone.utc).isoformat(),
     )

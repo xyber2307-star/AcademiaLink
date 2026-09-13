@@ -15,6 +15,7 @@ from app.models import (
     EvidenceUpdate,
     UserProfileResponse,
 )
+from app.rate_limit import check_user_rate_limit
 
 logger = logging.getLogger("academialink.evidence")
 
@@ -307,6 +308,7 @@ async def upload_evidence_file(
     3. Restricts file size to MAX_FILE_SIZE_BYTES (5 MB).
     4. Stores file in users/{uid}/ directory with sanitized filename.
     """
+    await check_user_rate_limit(current_user.uid, "evidence_upload")
     original_filename = file.filename or "evidence_file"
     _, ext = os.path.splitext(original_filename)
     ext_lower = ext.lower()

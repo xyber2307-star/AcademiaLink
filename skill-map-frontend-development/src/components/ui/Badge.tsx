@@ -16,16 +16,19 @@ export function Badge({
   tone = "slate",
   variant,
   className,
+  title,
   children,
 }: {
   tone?: Tone;
   variant?: string;
   className?: string;
+  title?: string;
   children: ReactNode;
 }) {
   const effectiveTone: Tone = (variant && variant in tones ? (variant as Tone) : tone);
   return (
     <span
+      title={title}
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset",
         tones[effectiveTone] || tones.slate,

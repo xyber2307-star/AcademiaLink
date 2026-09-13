@@ -69,7 +69,7 @@ export default function StudentMentorPage() {
     <div className="space-y-8">
       <PageHeader
         title="Faculty Mentorship & Guidance"
-        subtitle="Connect with your assigned faculty mentor, review constructive feedback, and track portfolio evidence evaluation."
+        description="Connect with your assigned faculty mentor, review constructive feedback, and track portfolio evidence evaluation."
       />
 
       {/* Assigned Mentor Card or Zero-Fake-Data Empty State */}

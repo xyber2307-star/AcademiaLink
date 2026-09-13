@@ -89,7 +89,7 @@ export default function InstitutionDashboardPage({ activeTab: initialTab = "over
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <PageHeader
           title={`${institution_name} Analytics Dashboard`}
-          subtitle="Real-time institutional competency intelligence, curricular alignment, and mentor engagement."
+          description="Real-time institutional competency intelligence, curricular alignment, and mentor engagement."
         />
         <span className="text-xs text-slate-400 self-start sm:self-auto">
           Updated {new Date(generated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}

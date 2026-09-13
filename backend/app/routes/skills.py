@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import logging
+import re
 from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -23,9 +24,32 @@ from app.models import (
     SkillUpdate,
     UserProfileResponse,
 )
+from app.rate_limit import check_user_rate_limit
 from app.routes.notifications import create_notification
+from firebase_admin import firestore as fb_firestore
 
 logger = logging.getLogger("academialink.skills")
+
+
+def _bump_taxonomy_popularity(db, skill_name: str) -> None:
+    """
+    Best-effort: increments the canonical taxonomy skill's real usage counter whenever a
+    student adds or is assessed on it, so 'popular skills' reflects actual system usage,
+    never an editorial/arbitrary ranking. Never raises - a taxonomy miss must not break
+    the student-facing skill/assessment flow.
+    """
+    try:
+        name_low = skill_name.strip().lower()
+        matches = list(db.collection("skills").where("active", "==", True).stream())
+        for doc in matches:
+            data = doc.to_dict() or {}
+            if str(data.get("name", "")).strip().lower() == name_low or name_low in [
+                a.strip().lower() for a in (data.get("aliases") or [])
+            ]:
+                doc.reference.update({"popularity": fb_firestore.Increment(1)})
+                return
+    except Exception as e:
+        logger.warning("Could not bump taxonomy popularity for '%s': %s", skill_name, e)
 
 router = APIRouter(prefix="/skills", tags=["Student Skills & Assessment"])
 
@@ -157,7 +181,298 @@ ASSESSMENT_QUESTION_BANK: Dict[str, List[dict]] = {
             "correctIndex": 0,
         },
     ],
+    "sql": [
+        {
+            "id": "sql_1",
+            "question": "Which SQL clause is used to filter rows AFTER aggregation (e.g. after a GROUP BY)?",
+            "options": ["WHERE", "HAVING", "FILTER", "ORDER BY"],
+            "correctIndex": 1,
+        },
+        {
+            "id": "sql_2",
+            "question": "Which JOIN returns all rows from the left table and matched rows from the right table, with NULLs where there is no match?",
+            "options": ["INNER JOIN", "LEFT JOIN", "CROSS JOIN", "RIGHT JOIN"],
+            "correctIndex": 1,
+        },
+        {
+            "id": "sql_3",
+            "question": "What does a PRIMARY KEY constraint guarantee for a column?",
+            "options": [
+                "Values can repeat but not be NULL",
+                "Values must be unique and NOT NULL",
+                "Values must be sorted ascending",
+                "Values must be foreign keys in another table",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "sql_4",
+            "question": "Which SQL command permanently removes a table and its structure from the database?",
+            "options": ["DELETE", "TRUNCATE", "DROP", "REMOVE"],
+            "correctIndex": 2,
+        },
+        {
+            "id": "sql_5",
+            "question": "What is the primary purpose of a database index?",
+            "options": [
+                "Enforce foreign key relationships",
+                "Speed up data retrieval at the cost of extra storage and slower writes",
+                "Encrypt column data",
+                "Automatically back up the table",
+            ],
+            "correctIndex": 1,
+        },
+    ],
+    "javascript": [
+        {
+            "id": "js_1",
+            "question": "What does the strict equality operator (===) check that the loose equality operator (==) does not?",
+            "options": [
+                "Nothing, they behave identically",
+                "It also checks that the operand types match, without type coercion",
+                "It only works on numbers",
+                "It checks object references only",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "js_2",
+            "question": "What is a closure in JavaScript?",
+            "options": [
+                "A syntax error handler",
+                "A function that retains access to its lexical scope's variables even after the outer function has returned",
+                "A way to close a network connection",
+                "A CSS-in-JS technique",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "js_3",
+            "question": "Which keyword declares a block-scoped variable that cannot be reassigned?",
+            "options": ["var", "let", "const", "static"],
+            "correctIndex": 2,
+        },
+        {
+            "id": "js_4",
+            "question": "What does Array.prototype.map() return?",
+            "options": [
+                "The original array, mutated in place",
+                "A new array with the results of calling a function on every element",
+                "A single accumulated value",
+                "A boolean indicating if any element matches",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "js_5",
+            "question": "In the JavaScript event loop, when do microtasks (e.g. resolved Promise callbacks) run relative to macrotasks (e.g. setTimeout)?",
+            "options": [
+                "After all macrotasks in the queue",
+                "Before the next macrotask, once the current call stack is empty",
+                "At the exact same time as macrotasks",
+                "Only after the page fully reloads",
+            ],
+            "correctIndex": 1,
+        },
+    ],
+    "git": [
+        {
+            "id": "git_1",
+            "question": "What is the difference between 'git fetch' and 'git pull'?",
+            "options": [
+                "They are identical commands",
+                "git fetch downloads remote changes without merging; git pull fetches and merges into the current branch",
+                "git pull only works on the main branch",
+                "git fetch deletes local commits",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "git_2",
+            "question": "What does 'git rebase' do differently from 'git merge'?",
+            "options": [
+                "Rebase deletes the feature branch immediately",
+                "Rebase rewrites commit history by replaying commits on top of another base, instead of creating a merge commit",
+                "Rebase only works with remote repositories",
+                "Rebase and merge behave identically",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "git_3",
+            "question": "Which file tells Git which files/directories to ignore from version control?",
+            "options": [".gitconfig", ".gitignore", ".gitattributes", "git.ignore"],
+            "correctIndex": 1,
+        },
+        {
+            "id": "git_4",
+            "question": "What does 'git cherry-pick <commit>' do?",
+            "options": [
+                "Deletes the specified commit from history",
+                "Applies the changes from a specific commit onto the current branch",
+                "Creates a new empty branch",
+                "Reverts all commits after the specified one",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "git_5",
+            "question": "What is a 'detached HEAD' state in Git?",
+            "options": [
+                "A corrupted repository that must be re-cloned",
+                "When HEAD points directly to a commit instead of a branch reference, so new commits won't belong to any branch",
+                "A branch with no commits",
+                "The default state after 'git init'",
+            ],
+            "correctIndex": 1,
+        },
+    ],
+    "cybersecurity": [
+        {
+            "id": "cyb_1",
+            "question": "What does the 'confidentiality' principle in the CIA triad refer to?",
+            "options": [
+                "Ensuring data is accurate and unaltered",
+                "Ensuring data is accessible only to authorized parties",
+                "Ensuring systems remain available during an attack",
+                "Ensuring data is backed up regularly",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "cyb_2",
+            "question": "What is the primary purpose of multi-factor authentication (MFA)?",
+            "options": [
+                "Replace passwords entirely with biometrics",
+                "Require two or more independent credentials to verify identity, reducing risk from a single compromised factor",
+                "Encrypt data at rest",
+                "Speed up login by skipping password checks",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "cyb_3",
+            "question": "What distinguishes a phishing attack from a brute-force attack?",
+            "options": [
+                "Phishing tries every possible password; brute-force tricks users into revealing credentials",
+                "Phishing tricks users into revealing credentials via deception; brute-force systematically guesses credentials",
+                "They are the same attack with different names",
+                "Phishing only targets servers, never individuals",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "cyb_4",
+            "question": "What is the main purpose of a firewall in a network?",
+            "options": [
+                "Encrypt all outgoing emails",
+                "Monitor and control incoming/outgoing network traffic based on defined security rules",
+                "Automatically patch operating system vulnerabilities",
+                "Store user passwords securely",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "cyb_5",
+            "question": "What is the goal of a penetration test?",
+            "options": [
+                "To cause maximum damage to production systems",
+                "To simulate real-world attacks under authorization in order to find and report exploitable vulnerabilities before attackers do",
+                "To install antivirus software",
+                "To train employees on phishing awareness only",
+            ],
+            "correctIndex": 1,
+        },
+    ],
+    "machine learning": [
+        {
+            "id": "ml_1",
+            "question": "What is 'overfitting' in a machine learning model?",
+            "options": [
+                "The model performs poorly on both training and test data",
+                "The model learns the training data too closely, including noise, and generalizes poorly to new data",
+                "The model trains faster than expected",
+                "The model uses too few features",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "ml_2",
+            "question": "What is the main difference between supervised and unsupervised learning?",
+            "options": [
+                "Supervised learning requires no data at all",
+                "Supervised learning uses labeled data to learn a mapping to known outputs; unsupervised learning finds patterns in unlabeled data",
+                "Unsupervised learning is always more accurate",
+                "They are the same technique",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "ml_3",
+            "question": "Why is a train/validation/test split used when building a model?",
+            "options": [
+                "To make training slower on purpose",
+                "To fairly evaluate generalization performance and tune hyperparameters without leaking test data into training",
+                "It is only needed for deep learning models",
+                "To reduce the total amount of data needed",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "ml_4",
+            "question": "What does a confusion matrix summarize for a classification model?",
+            "options": [
+                "The model's training time and memory usage",
+                "The counts of true positives, true negatives, false positives, and false negatives",
+                "The learning rate schedule",
+                "The number of features used",
+            ],
+            "correctIndex": 1,
+        },
+        {
+            "id": "ml_5",
+            "question": "What is the purpose of regularization (e.g. L1/L2) in a model?",
+            "options": [
+                "To increase model complexity for better fit",
+                "To penalize large weights and reduce overfitting, improving generalization",
+                "To speed up data loading",
+                "To convert categorical features to numeric",
+            ],
+            "correctIndex": 1,
+        },
+    ],
 }
+
+# Maps a canonical taxonomy skill slug to the ASSESSMENT_QUESTION_BANK key used for its
+# question set, for cases where the bank's historical key name differs from the skill slug.
+SKILL_SLUG_TO_BANK_KEY: Dict[str, str] = {
+    "software_engineering": "general",
+    "machine_learning": "machine learning",
+}
+
+
+def _slugify(name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "_", name.strip().lower())
+    return slug.strip("_")
+
+
+def resolve_bank_key(skill_name: str) -> Optional[str]:
+    """
+    Resolves a raw skill name to a REAL question-bank key, or None if no fact-checked
+    question bank exists for it yet. Never silently substitutes an unrelated bank (e.g. the
+    old 'general' fallback) so a student can't be scored on questions that don't match the
+    skill they selected.
+    """
+    direct = skill_name.strip().lower()
+    if direct in ASSESSMENT_QUESTION_BANK:
+        return direct
+    slug = _slugify(skill_name)
+    mapped = SKILL_SLUG_TO_BANK_KEY.get(slug)
+    if mapped and mapped in ASSESSMENT_QUESTION_BANK:
+        return mapped
+    if slug in ASSESSMENT_QUESTION_BANK:
+        return slug
+    return None
 
 
 def serialize_skill(doc_id: str, data: dict) -> SkillResponse:
@@ -245,6 +560,7 @@ async def add_my_skill(
         new_doc_ref = skills_ref.document()
         skill_dict["skillId"] = new_doc_ref.id
         new_doc_ref.set(skill_dict)
+        _bump_taxonomy_popularity(db, skill_in.name)
 
         logger.info("Added skill '%s' for user %s (ID: %s)", skill_in.name, current_user.uid, new_doc_ref.id)
         return serialize_skill(new_doc_ref.id, skill_dict)
@@ -331,12 +647,17 @@ async def delete_my_skill(
 
 @router.get("/assessment/questions", response_model=List[AssessmentQuestion], summary="Get assessment questions for a skill")
 async def get_assessment_questions(
-    skill: str = Query("python", description="Skill name to assess (e.g. python, react, general)"),
+    skill: str = Query("python", max_length=150, description="Skill name to assess (e.g. python, react, general)"),
     current_user: UserProfileResponse = Depends(get_current_user),
 ):
     """Returns assessment questions without server-side answer keys."""
-    key = skill.strip().lower()
-    questions = ASSESSMENT_QUESTION_BANK.get(key, ASSESSMENT_QUESTION_BANK["general"])
+    bank_key = resolve_bank_key(skill)
+    if bank_key is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No assessment is available yet for '{skill}'. You can still self-declare this skill with evidence.",
+        )
+    questions = ASSESSMENT_QUESTION_BANK[bank_key]
 
     return [
         AssessmentQuestion(
@@ -366,8 +687,14 @@ async def evaluate_assessment(
     Stores the assessed skill in the student's subcollection users/{uid}/skills/{skillId}
     with verified evidence.
     """
-    key = submission.skillName.strip().lower()
-    questions = ASSESSMENT_QUESTION_BANK.get(key, ASSESSMENT_QUESTION_BANK["general"])
+    await check_user_rate_limit(current_user.uid, "assessment_submit")
+    bank_key = resolve_bank_key(submission.skillName)
+    if bank_key is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No assessment is available yet for '{submission.skillName}'. You can still self-declare this skill with evidence via POST /api/skills/me.",
+        )
+    questions = ASSESSMENT_QUESTION_BANK[bank_key]
     total_questions = len(questions)
 
     # Map question answers
@@ -452,6 +779,7 @@ async def evaluate_assessment(
         skill_payload["trend"] = 0
 
     skill_ref.set(skill_payload, merge=True)
+    _bump_taxonomy_popularity(db, submission.skillName)
     stored_doc = skill_ref.get()
 
     # Store assessment in user's assessment history
@@ -508,8 +836,13 @@ async def get_quiz_for_skill(
     Returns multiple-choice quiz questions for a specific skill.
     Never exposes correctIndex to prevent client-side answer cheating.
     """
-    key = skill_name.strip().lower()
-    raw_questions = ASSESSMENT_QUESTION_BANK.get(key, ASSESSMENT_QUESTION_BANK["general"])
+    bank_key = resolve_bank_key(skill_name)
+    if bank_key is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No assessment is available yet for '{skill_name}'. You can still self-declare this skill with evidence.",
+        )
+    raw_questions = ASSESSMENT_QUESTION_BANK[bank_key]
     questions = [
         QuizQuestionResponse(
             id=q["id"],
@@ -539,8 +872,14 @@ async def submit_quiz(
     - Record in assessment history
     - Preserve verified proficiencies
     """
-    key = submission.skill_name.strip().lower()
-    questions = ASSESSMENT_QUESTION_BANK.get(key, ASSESSMENT_QUESTION_BANK["general"])
+    await check_user_rate_limit(current_user.uid, "assessment_submit")
+    bank_key = resolve_bank_key(submission.skill_name)
+    if bank_key is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No assessment is available yet for '{submission.skill_name}'. You can still self-declare this skill with evidence via POST /api/skills/me.",
+        )
+    questions = ASSESSMENT_QUESTION_BANK[bank_key]
     total_questions = len(questions)
 
     correct_count = 0
@@ -604,6 +943,7 @@ async def submit_quiz(
         skill_payload["createdAt"] = now_iso
         skill_payload["trend"] = 0
     skill_ref.set(skill_payload, merge=True)
+    _bump_taxonomy_popularity(db, submission.skill_name)
 
     # Record assessment history
     assessment_id = f"asmt_{uuid.uuid4().hex[:12]}"

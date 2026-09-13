@@ -33,6 +33,9 @@ function describeAuthError(err: unknown): string {
   if (message.includes("auth/popup-blocked")) {
     return "Your browser blocked the Google sign-in popup. Please allow popups for this site and try again.";
   }
+  if (message.includes("missing initial state") || message.includes("auth/web-storage-unsupported") || message.includes("auth/missing-initial-state")) {
+    return "Google sign-in couldn't complete because your browser is blocking cross-site storage for this sign-in step. Try disabling \"Block third-party cookies\" / tracking prevention for this site, use a different browser, or sign in with your email and password instead.";
+  }
   if (message.includes("auth/operation-not-allowed")) {
     return "Google sign-in is not enabled for this project yet. Please contact the administrator.";
   }

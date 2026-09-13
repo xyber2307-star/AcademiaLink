@@ -4,7 +4,10 @@ import { auth } from "./firebase";
  * Central API client for AcademiaLINK.
  * Communicates with the FastAPI backend with Firebase ID Bearer token.
  */
-export const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+// Falls back to the deployed production backend (not localhost) so the app works out of the
+// box even if a hosting platform's VITE_API_URL environment variable isn't actually reaching
+// the build - only override via VITE_API_URL for local development against a different backend.
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? "https://academialink-1.onrender.com/api";
 
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = {

@@ -8,12 +8,12 @@ export function AuthLayout() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="relative hidden overflow-hidden bg-slate-950 lg:block">
-        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-indigo-600/40 blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-violet-600/40 blur-3xl" />
+        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-600/40 blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-sky-600/40 blur-3xl" />
         <div className="relative flex h-full flex-col justify-between p-12">
           <Link to="/"><Logo light /></Link>
           <div>
-            <h2 className="text-4xl font-bold leading-tight text-white">Bridge the gap between <span className="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">campus and career.</span></h2>
+            <h2 className="text-4xl font-bold leading-tight text-white">Bridge the gap between <span className="bg-gradient-to-r from-blue-300 to-sky-300 bg-clip-text text-transparent">campus and career.</span></h2>
             <p className="mt-4 max-w-md text-slate-300">AcademiaLink connects students, faculty, institutions and industry on one platform for skill mapping, internships and placements.</p>
             <ul className="mt-8 space-y-3">
               {points.map((p) => <li key={p} className="flex items-center gap-3 text-sm text-slate-200"><CheckCircle2 className="h-5 w-5 text-emerald-400" />{p}</li>)}

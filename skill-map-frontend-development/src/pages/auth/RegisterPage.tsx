@@ -61,10 +61,10 @@ export default function RegisterPage() {
           <div className="mt-2 grid grid-cols-4 gap-1">{[0, 1, 2, 3].map((i) => <span key={i} className={`h-1 rounded-full ${i < strength ? (strength <= 1 ? "bg-rose-500" : strength <= 2 ? "bg-amber-500" : "bg-emerald-500") : "bg-slate-200"}`} />)}</div>
         </div>
         <Input label="Confirm password" type="password" icon={<Lock className="h-4 w-4" />} value={form.confirm} onChange={set("confirm")} error={errors.confirm} placeholder="Re-enter password" />
-        <label className="flex items-start gap-2 text-sm text-slate-600"><input type="checkbox" required className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600" /> I agree to the <a href="#" className="font-medium text-indigo-600">Terms</a> and <a href="#" className="font-medium text-indigo-600">Privacy Policy</a>.</label>
+        <label className="flex items-start gap-2 text-sm text-slate-600"><input type="checkbox" required className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600" /> I agree to the <a href="#" className="font-medium text-blue-600">Terms</a> and <a href="#" className="font-medium text-blue-600">Privacy Policy</a>.</label>
         <Button type="submit" size="lg" className="w-full" loading={loading}>Create account</Button>
       </form>
-      <p className="mt-6 text-center text-sm text-slate-600">Already have an account? <Link to="/login" className="font-semibold text-indigo-600 hover:text-indigo-700">Sign in</Link></p>
+      <p className="mt-6 text-center text-sm text-slate-600">Already have an account? <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700">Sign in</Link></p>
     </div>
   );
 }

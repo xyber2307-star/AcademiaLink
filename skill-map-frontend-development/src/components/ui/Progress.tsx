@@ -4,7 +4,7 @@ import { cn } from "../../utils/cn";
 export function ProgressBar({ value, className, barClassName, size = "md" }: { value: number; className?: string; barClassName?: string; size?: "sm" | "md" }) {
   return (
     <div className={cn("w-full overflow-hidden rounded-full bg-slate-100", size === "sm" ? "h-1.5" : "h-2.5", className)}>
-      <div className={cn("h-full rounded-full bg-indigo-600 transition-all duration-700", barClassName)} style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+      <div className={cn("h-full rounded-full bg-blue-600 transition-all duration-700", barClassName)} style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
     </div>
   );
 }

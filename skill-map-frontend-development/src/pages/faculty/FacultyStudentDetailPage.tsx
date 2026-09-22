@@ -126,7 +126,7 @@ export default function FacultyStudentDetailPage() {
         </p>
         <Link
           to="/faculty"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
         >
           <ArrowLeft className="h-4 w-4" /> Return to Faculty Hub
         </Link>
@@ -155,17 +155,17 @@ export default function FacultyStudentDetailPage() {
               <img
                 src={profile.avatar || "https://i.pravatar.cc/150?img=12"}
                 alt={profile.name}
-                className="h-20 w-20 rounded-full border-2 border-indigo-100 object-cover"
+                className="h-20 w-20 rounded-full border-2 border-blue-100 object-cover"
               />
               <div>
                 <div className="flex items-center gap-3">
                   <h2 className="text-2xl font-bold text-slate-900">{profile.name}</h2>
-                  <Badge tone="indigo">Student Mentee</Badge>
+                  <Badge tone="blue">Student Mentee</Badge>
                 </div>
                 <p className="text-sm text-slate-500">{profile.email}</p>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
                   {profile.targetRole && (
-                    <span className="rounded bg-indigo-50 px-2 py-0.5 font-medium text-indigo-700">
+                    <span className="rounded bg-blue-50 px-2 py-0.5 font-medium text-blue-700">
                       Target: {profile.targetRole}
                     </span>
                   )}
@@ -195,7 +195,7 @@ export default function FacultyStudentDetailPage() {
               </div>
               <div className="text-center rounded-xl bg-slate-50 p-3">
                 <p className="text-xs text-slate-500">Feedback</p>
-                <p className="text-xl font-bold text-indigo-600">{feedback.length}</p>
+                <p className="text-xl font-bold text-blue-600">{feedback.length}</p>
               </div>
             </div>
           </div>
@@ -219,7 +219,7 @@ export default function FacultyStudentDetailPage() {
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-semibold transition whitespace-nowrap ${
                   activeTab === tab.id
-                    ? "border-indigo-600 text-indigo-600"
+                    ? "border-blue-600 text-blue-600"
                     : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
                 }`}
               >
@@ -261,7 +261,7 @@ export default function FacultyStudentDetailPage() {
                     </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                       <div
-                        className="h-full bg-indigo-600 rounded-full"
+                        className="h-full bg-blue-600 rounded-full"
                         style={{ width: `${(skill.proficiency / 5) * 100}%` }}
                       />
                     </div>
@@ -377,7 +377,7 @@ export default function FacultyStudentDetailPage() {
                       setReviewStatus(ev.verification_status === "approved" ? "approved" : "rejected");
                       setReviewNotes(ev.verification_notes || "");
                     }}
-                    className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
+                    className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
                   >
                     {ev.verification_status === "pending" ? "Review Evidence" : "Update Evaluation"}
                   </button>
@@ -421,7 +421,7 @@ export default function FacultyStudentDetailPage() {
                   value={feedbackMessage}
                   onChange={(e) => setFeedbackMessage(e.target.value)}
                   placeholder={`Write your recommendations or review for ${profile.name}...`}
-                  className="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
@@ -430,7 +430,7 @@ export default function FacultyStudentDetailPage() {
                   <select
                     value={selectedSkill}
                     onChange={(e) => setSelectedSkill(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-700 focus:border-blue-500 focus:outline-none"
                   >
                     <option value="">-- Link to a Skill (Optional) --</option>
                     {skills.map((s) => (
@@ -444,7 +444,7 @@ export default function FacultyStudentDetailPage() {
                 <button
                   type="submit"
                   disabled={submittingFeedback || !feedbackMessage.trim()}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
                   <span>{submittingFeedback ? "Dispatching..." : "Send Guidance"}</span>
@@ -470,7 +470,7 @@ export default function FacultyStudentDetailPage() {
                     <div>
                       <span className="font-semibold text-slate-900">{item.mentor_name || "Faculty Mentor"}</span>
                       {item.related_skill_id && (
-                        <span className="ml-2 rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                        <span className="ml-2 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
                           Skill: {item.related_skill_id}
                         </span>
                       )}
@@ -548,7 +548,7 @@ export default function FacultyStudentDetailPage() {
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
                   placeholder="Notes for student..."
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
@@ -563,7 +563,7 @@ export default function FacultyStudentDetailPage() {
                 <button
                   type="submit"
                   disabled={reviewing}
-                  className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                  className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
                 >
                   {reviewing ? "Submitting..." : "Save Evaluation"}
                 </button>

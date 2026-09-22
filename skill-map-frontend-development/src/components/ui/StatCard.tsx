@@ -11,7 +11,7 @@ export function StatCard({
   delta,
   hint,
   subtitle,
-  accent = "indigo",
+  accent = "blue",
 }: {
   label?: string;
   title?: string;
@@ -20,15 +20,14 @@ export function StatCard({
   delta?: number;
   hint?: string;
   subtitle?: string;
-  accent?: "indigo" | "emerald" | "amber" | "rose" | "sky" | "violet" | "slate";
+  accent?: "blue" | "emerald" | "amber" | "rose" | "sky" | "slate";
 }) {
   const accents = {
-    indigo: "bg-indigo-50 text-indigo-600",
+    blue: "bg-blue-50 text-blue-600",
     emerald: "bg-emerald-50 text-emerald-600",
     amber: "bg-amber-50 text-amber-600",
     rose: "bg-rose-50 text-rose-600",
     sky: "bg-sky-50 text-sky-600",
-    violet: "bg-violet-50 text-violet-600",
     slate: "bg-slate-100 text-slate-600",
   };
 

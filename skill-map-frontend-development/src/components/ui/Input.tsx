@@ -11,7 +11,7 @@ export function Input({ label, icon, error, hint, className, id, ...rest }: Inpu
         {icon && <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{icon}</span>}
         <input
           id={id}
-          className={cn("h-11 w-full rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100", icon ? "pl-10 pr-3" : "px-3", error && "border-rose-400 focus:border-rose-500 focus:ring-rose-100", className)}
+          className={cn("h-11 w-full rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100", icon ? "pl-10 pr-3" : "px-3", error && "border-rose-400 focus:border-rose-500 focus:ring-rose-100", className)}
           {...rest}
         />
       </div>
@@ -26,7 +26,7 @@ export function Select({ label, options, className, ...rest }: SelectProps) {
   return (
     <label className="block">
       {label && <span className="mb-1.5 block text-sm font-medium text-slate-700">{label}</span>}
-      <select className={cn("h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100", className)} {...rest}>
+      <select className={cn("h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100", className)} {...rest}>
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     </label>

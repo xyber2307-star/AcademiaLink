@@ -85,7 +85,7 @@ export default function LearningPathPage() {
         />
         <Card>
           <CardBody className="py-16 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-8 ring-indigo-50/50">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-8 ring-blue-50/50">
               <BookOpen className="h-7 w-7" />
             </div>
             <h3 className="mt-4 text-base font-bold text-slate-900">
@@ -141,7 +141,7 @@ export default function LearningPathPage() {
               className={cn(
                 "whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold transition-all",
                 p.path_id === currentPath.path_id
-                  ? "bg-indigo-600 text-white shadow-sm"
+                  ? "bg-blue-600 text-white shadow-sm"
                   : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
               )}
             >
@@ -153,7 +153,7 @@ export default function LearningPathPage() {
 
       {/* Target Job Roadmap Header */}
       <Card className="overflow-hidden">
-        <div className="h-16 bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-700" />
+        <div className="h-16 bg-gradient-to-r from-blue-700 via-blue-600 to-sky-700" />
         <CardBody className="relative pt-0">
           <div className="-mt-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
@@ -165,11 +165,11 @@ export default function LearningPathPage() {
                   <h2 className="text-xl font-bold text-slate-900">
                     {currentPath.target_job_title}
                   </h2>
-                  <Badge tone={currentPath.status === "active" ? "indigo" : "slate"}>
+                  <Badge tone={currentPath.status === "active" ? "blue" : "slate"}>
                     {currentPath.status}
                   </Badge>
                 </div>
-                <p className="text-xs font-medium text-indigo-600">
+                <p className="text-xs font-medium text-blue-600">
                   {currentPath.target_company}
                 </p>
                 <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
@@ -177,7 +177,7 @@ export default function LearningPathPage() {
                   <span>•</span>
                   <Link
                     to={`/student/opportunities/${currentPath.target_job_id}`}
-                    className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:underline"
+                    className="inline-flex items-center gap-1 font-medium text-blue-600 hover:underline"
                   >
                     Opportunity Details
                     <ExternalLink className="h-3 w-3" />
@@ -230,7 +230,7 @@ export default function LearningPathPage() {
               <span className="font-medium">
                 Syllabus Progress: {completedCount} of {skills.length} skills mastered
               </span>
-              <span className="font-bold text-indigo-600">{completionPercent}%</span>
+              <span className="font-bold text-blue-600">{completionPercent}%</span>
             </div>
             <ProgressBar value={completionPercent} className="mt-2" size="sm" />
           </div>
@@ -243,7 +243,7 @@ export default function LearningPathPage() {
           label="Skills to Develop"
           value={skills.length}
           icon={<Target className="h-5 w-5" />}
-          accent="indigo"
+          accent="blue"
           hint="Identified from job gaps"
         />
         <StatCard
@@ -270,8 +270,8 @@ export default function LearningPathPage() {
       </div>
 
       {/* Integrity Notice Banner */}
-      <div className="flex items-start gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4 text-xs text-slate-600">
-        <Info className="h-5 w-5 shrink-0 text-indigo-600" />
+      <div className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/50 p-4 text-xs text-slate-600">
+        <Info className="h-5 w-5 shrink-0 text-blue-600" />
         <div className="space-y-1">
           <p className="font-semibold text-slate-900">
             Study Progress vs. Verified Competencies
@@ -311,7 +311,7 @@ export default function LearningPathPage() {
                       {item.skill_name}
                     </span>
                     <Badge tone={priorityTone}>{item.priority} Priority</Badge>
-                    <Badge tone="indigo">
+                    <Badge tone="blue">
                       Score: {item.priority_score.toFixed(2)}
                     </Badge>
                     <span className="text-xs text-slate-400">
@@ -329,7 +329,7 @@ export default function LearningPathPage() {
                     <span className="text-slate-300">→</span>
                     <span className="inline-flex items-center gap-1.5">
                       <span className="font-medium text-slate-400">Target Required:</span>
-                      <span className="font-semibold text-indigo-700">
+                      <span className="font-semibold text-blue-700">
                         {item.required_proficiency.toFixed(1)} / 5.0
                       </span>
                     </span>

@@ -29,7 +29,7 @@ function ReadinessCard() {
   return (
     <div className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100">
       <p className="text-xs font-semibold text-slate-600">Career Readiness</p>
-      <p className="mt-1 text-2xl font-bold text-indigo-600">{readiness}%</p>
+      <p className="mt-1 text-2xl font-bold text-blue-600">{readiness}%</p>
       <p className="mt-1 text-xs text-slate-500">Based on your verified skills and benchmark coverage.</p>
     </div>
   );
@@ -61,14 +61,14 @@ export function Sidebar({ role, open, onClose, onLogout }: Props) {
                       end={item.to.split("/").length <= 2}
                       onClick={onClose}
                       className={({ isActive }) =>
-                        cn("group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition", isActive ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")
+                        cn("group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition", isActive ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")
                       }
                     >
                       {({ isActive }) => (
                         <>
-                          <item.icon className={cn("h-[18px] w-[18px]", isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600")} />
+                          <item.icon className={cn("h-[18px] w-[18px]", isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")} />
                           <span className="flex-1">{item.label}</span>
-                          {item.badge && <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-semibold text-white">{item.badge}</span>}
+                          {item.badge && <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white">{item.badge}</span>}
                         </>
                       )}
                     </NavLink>

@@ -30,7 +30,7 @@ export function Topbar({ user, onMenu, onLogout }: Props) {
         <button onClick={onMenu} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"><Menu className="h-5 w-5" /></button>
         <div className="relative hidden flex-1 md:block md:max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input placeholder="Search skills, opportunities, mentors…" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-100" />
+          <input placeholder="Search skills, opportunities, mentors…" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100" />
         </div>
         <div className="ml-auto flex items-center gap-2">
           <button className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 md:hidden"><Search className="h-5 w-5" /></button>
@@ -41,14 +41,14 @@ export function Topbar({ user, onMenu, onLogout }: Props) {
             </button>
             {openNotif && (
               <div className="absolute right-0 mt-2 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3"><p className="text-sm font-semibold">Notifications</p><Link to={`${base}/notifications`} onClick={() => setOpenNotif(false)} className="text-xs font-medium text-indigo-600">View all</Link></div>
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3"><p className="text-sm font-semibold">Notifications</p><Link to={`${base}/notifications`} onClick={() => setOpenNotif(false)} className="text-xs font-medium text-blue-600">View all</Link></div>
                 <ul className="max-h-80 divide-y divide-slate-100 overflow-y-auto">
                   {realNotifications.length === 0 ? (
                     <li className="px-4 py-6 text-center text-xs text-slate-400">No notifications available</li>
                   ) : (
                     realNotifications.map((n) => (
                       <li key={n.notification_id} className="flex gap-3 px-4 py-3 hover:bg-slate-50">
-                        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.read ? "bg-slate-200" : "bg-indigo-500"}`} />
+                        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.read ? "bg-slate-200" : "bg-blue-500"}`} />
                         <div>
                           <p className="text-sm font-medium text-slate-800">{n.title}</p>
                           <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.message}</p>

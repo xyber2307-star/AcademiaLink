@@ -110,7 +110,7 @@ export function InstitutionSearchInput({ freeTextValue, onFreeTextChange, select
           }}
           onFocus={() => setOpen(true)}
           placeholder="Search your institution..."
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 pl-9 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          className="w-full rounded-xl border border-slate-200 px-3 py-2 pl-9 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
         />
         {status === "loading" && (
           <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />
@@ -162,7 +162,7 @@ export function InstitutionSearchInput({ freeTextValue, onFreeTextChange, select
                       setOpen(false);
                       setQuery("");
                     }}
-                    className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-indigo-50"
+                    className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-blue-50"
                   >
                     <span className="text-sm font-medium text-slate-900">{r.name}</span>
                     <span className="text-xs text-slate-500">

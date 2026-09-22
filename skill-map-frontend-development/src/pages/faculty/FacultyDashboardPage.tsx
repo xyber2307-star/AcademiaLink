@@ -117,7 +117,7 @@ export default function FacultyDashboardPage() {
           value={totalAssigned}
           icon={<Users className="h-5 w-5" />}
           hint={totalAssigned === 0 ? "No active assignments" : "Active student mentees"}
-          accent="indigo"
+          accent="blue"
         />
         <StatCard
           label="Pending Evidence"
@@ -131,7 +131,7 @@ export default function FacultyDashboardPage() {
           value="Academic"
           icon={<Award className="h-5 w-5" />}
           hint="Institution verified role"
-          accent="violet"
+          accent="sky"
         />
       </div>
 
@@ -142,7 +142,7 @@ export default function FacultyDashboardPage() {
             onClick={() => setActiveTab("students")}
             className={`flex items-center gap-2 border-b-2 py-4 px-1 text-sm font-semibold transition ${
               activeTab === "students"
-                ? "border-indigo-600 text-indigo-600"
+                ? "border-blue-600 text-blue-600"
                 : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
             }`}
           >
@@ -156,7 +156,7 @@ export default function FacultyDashboardPage() {
             onClick={() => setActiveTab("evidence")}
             className={`flex items-center gap-2 border-b-2 py-4 px-1 text-sm font-semibold transition ${
               activeTab === "evidence"
-                ? "border-indigo-600 text-indigo-600"
+                ? "border-blue-600 text-blue-600"
                 : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
             }`}
           >
@@ -197,7 +197,7 @@ export default function FacultyDashboardPage() {
                         <h4 className="truncate text-base font-bold text-slate-900">{student.name}</h4>
                         <p className="truncate text-xs text-slate-500">{student.email}</p>
                         {student.targetRole && (
-                          <span className="mt-1.5 inline-block rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                          <span className="mt-1.5 inline-block rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
                             {student.targetRole}
                           </span>
                         )}
@@ -227,7 +227,7 @@ export default function FacultyDashboardPage() {
                   <div className="mt-6 pt-4 border-t border-slate-100">
                     <Link
                       to={`/faculty/students/${student.student_uid}`}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
                     >
                       <span>View Mentoring Dossier</span>
                       <ArrowUpRight className="h-4 w-4" />
@@ -272,7 +272,7 @@ export default function FacultyDashboardPage() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setSelectedEvidence(item)}
-                        className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                        className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
                       >
                         Evaluate Submission
                       </button>
@@ -297,7 +297,7 @@ export default function FacultyDashboardPage() {
                         href={item.project_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:underline"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
                       >
                         <span>Demo</span>
                         <ExternalLink className="h-3 w-3" />
@@ -308,7 +308,7 @@ export default function FacultyDashboardPage() {
                         href={item.source_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:underline"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
                       >
                         <span>Repository</span>
                         <ExternalLink className="h-3 w-3" />
@@ -395,7 +395,7 @@ export default function FacultyDashboardPage() {
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
                   placeholder="Provide constructive feedback, verification rationale, or next step recommendations..."
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
@@ -410,7 +410,7 @@ export default function FacultyDashboardPage() {
                 <button
                   type="submit"
                   disabled={reviewing}
-                  className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                  className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
                 >
                   {reviewing ? "Submitting..." : "Confirm Evaluation"}
                 </button>

@@ -122,33 +122,33 @@ export function EditProfileModal({ profile, role, onClose, onSaved }: Props) {
 
           <div>
             <label className="block text-xs font-semibold text-slate-700">Full Name *</label>
-            <input value={form.name} onChange={set("name")} required className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+            <input value={form.name} onChange={set("name")} required className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700">Phone</label>
-              <input value={form.phone} onChange={set("phone")} placeholder="+91 98765 43210" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+              <input value={form.phone} onChange={set("phone")} placeholder="+91 98765 43210" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700">Location</label>
-              <input value={form.location} onChange={set("location")} placeholder="Bengaluru, India" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+              <input value={form.location} onChange={set("location")} placeholder="Bengaluru, India" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700">Headline</label>
-            <input value={form.headline} onChange={set("headline")} placeholder="e.g. Final-year CS student | Aspiring Backend Engineer" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+            <input value={form.headline} onChange={set("headline")} placeholder="e.g. Final-year CS student | Aspiring Backend Engineer" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700">About</label>
-            <textarea value={form.about} onChange={set("about")} rows={3} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+            <textarea value={form.about} onChange={set("about")} rows={3} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700">Avatar URL</label>
-            <input value={form.avatar} onChange={set("avatar")} placeholder="https://..." className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+            <input value={form.avatar} onChange={set("avatar")} placeholder="https://..." className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
           </div>
 
           {(role === "student" || role === "faculty" || role === "institution") && (
@@ -156,7 +156,7 @@ export function EditProfileModal({ profile, role, onClose, onSaved }: Props) {
               {role === "institution" ? (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700">Institution</label>
-                  <input value={form.institution} onChange={set("institution")} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                  <input value={form.institution} onChange={set("institution")} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
                 </div>
               ) : (
                 <div className="col-span-2">
@@ -195,13 +195,13 @@ export function EditProfileModal({ profile, role, onClose, onSaved }: Props) {
               {role !== "student" && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700">Department</label>
-                  <input value={form.department} onChange={set("department")} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                  <input value={form.department} onChange={set("department")} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
                 </div>
               )}
               {role === "student" && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700">Roll Number</label>
-                  <input value={form.rollNo} onChange={set("rollNo")} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                  <input value={form.rollNo} onChange={set("rollNo")} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
                 </div>
               )}
             </div>
@@ -211,15 +211,15 @@ export function EditProfileModal({ profile, role, onClose, onSaved }: Props) {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700">Degree</label>
-                <input value={form.degree} onChange={set("degree")} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                <input value={form.degree} onChange={set("degree")} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-700">Branch</label>
-                <input value={form.branch} onChange={set("branch")} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                <input value={form.branch} onChange={set("branch")} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-700">Year</label>
-                <input value={form.year} onChange={set("year")} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                <input value={form.year} onChange={set("year")} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
               </div>
             </div>
           )}
@@ -227,22 +227,22 @@ export function EditProfileModal({ profile, role, onClose, onSaved }: Props) {
           {role === "student" && (
             <div>
               <label className="block text-xs font-semibold text-slate-700">Target Role</label>
-              <input value={form.targetRole} onChange={set("targetRole")} placeholder="e.g. Software Engineer" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+              <input value={form.targetRole} onChange={set("targetRole")} placeholder="e.g. Software Engineer" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
             </div>
           )}
 
           <div className="grid grid-cols-3 gap-3 border-t border-slate-100 pt-3">
             <div>
               <label className="block text-[11px] text-slate-500">GitHub</label>
-              <input value={form.github} onChange={set("github")} placeholder="username" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+              <input value={form.github} onChange={set("github")} placeholder="username" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
             </div>
             <div>
               <label className="block text-[11px] text-slate-500">LinkedIn</label>
-              <input value={form.linkedin} onChange={set("linkedin")} placeholder="username" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+              <input value={form.linkedin} onChange={set("linkedin")} placeholder="username" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
             </div>
             <div>
               <label className="block text-[11px] text-slate-500">Portfolio</label>
-              <input value={form.portfolio} onChange={set("portfolio")} placeholder="https://..." className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+              <input value={form.portfolio} onChange={set("portfolio")} placeholder="https://..." className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
             </div>
           </div>
 

@@ -41,7 +41,7 @@ export default function ProfilePage({ role }: { role: UserRole }) {
       />
 
       <Card className="overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-indigo-600 via-violet-600 to-sky-500 sm:h-32" />
+        <div className="h-24 bg-gradient-to-r from-blue-600 via-sky-600 to-sky-500 sm:h-32" />
         <CardBody className="relative pt-0">
           <div className="-mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
@@ -49,9 +49,9 @@ export default function ProfilePage({ role }: { role: UserRole }) {
               <div className="sm:pb-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-2xl font-bold text-slate-900">{profile.name}</h2>
-                  <Badge tone="indigo">{roleLabel[role] || role}</Badge>
+                  <Badge tone="blue">{roleLabel[role] || role}</Badge>
                 </div>
-                {profile.headline && <p className="mt-0.5 text-sm font-medium text-indigo-600">{profile.headline}</p>}
+                {profile.headline && <p className="mt-0.5 text-sm font-medium text-blue-600">{profile.headline}</p>}
                 {(profile.institution || profile.department) && (
                   <p className="mt-1 text-sm text-slate-500">
                     {[profile.department, profile.institution].filter(Boolean).join(" · ")}
@@ -65,9 +65,9 @@ export default function ProfilePage({ role }: { role: UserRole }) {
               </div>
             </div>
             <div className="flex gap-2 sm:pb-1">
-              {profile.links?.github && <a href={profile.links.github} target="_blank" rel="noreferrer" className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600"><Code2 className="h-4 w-4" /></a>}
-              {profile.links?.linkedin && <a href={profile.links.linkedin} target="_blank" rel="noreferrer" className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600"><Link2 className="h-4 w-4" /></a>}
-              {profile.links?.portfolio && <a href={profile.links.portfolio} target="_blank" rel="noreferrer" className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600"><Globe className="h-4 w-4" /></a>}
+              {profile.links?.github && <a href={profile.links.github} target="_blank" rel="noreferrer" className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600"><Code2 className="h-4 w-4" /></a>}
+              {profile.links?.linkedin && <a href={profile.links.linkedin} target="_blank" rel="noreferrer" className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600"><Link2 className="h-4 w-4" /></a>}
+              {profile.links?.portfolio && <a href={profile.links.portfolio} target="_blank" rel="noreferrer" className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600"><Globe className="h-4 w-4" /></a>}
             </div>
           </div>
         </CardBody>

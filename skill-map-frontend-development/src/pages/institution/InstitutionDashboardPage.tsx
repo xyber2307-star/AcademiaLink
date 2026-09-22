@@ -103,14 +103,14 @@ export default function InstitutionDashboardPage({ activeTab: initialTab = "over
           value={student_overview.total_students}
           icon={<Users className="h-5 w-5" />}
           hint={`${student_overview.active_students} active`}
-          accent="indigo"
+          accent="blue"
         />
         <StatCard
           label="Skills Tracked"
           value={skill_analytics.total_skills_recorded}
           icon={<Award className="h-5 w-5" />}
           hint={`${student_overview.students_with_skills} with skills`}
-          accent="violet"
+          accent="sky"
         />
         <StatCard
           label="Learning Paths"
@@ -138,7 +138,7 @@ export default function InstitutionDashboardPage({ activeTab: initialTab = "over
           value={recruitment_analytics.relevant_jobs_count}
           icon={<Briefcase className="h-5 w-5" />}
           hint={recruitment_analytics.average_match_score > 0 ? `${recruitment_analytics.average_match_score}% avg match` : "Published roles"}
-          accent="indigo"
+          accent="blue"
         />
       </div>
 
@@ -158,7 +158,7 @@ export default function InstitutionDashboardPage({ activeTab: initialTab = "over
                 onClick={() => setCurrentTab(tab.id as any)}
                 className={`flex items-center gap-2 border-b-2 py-3 px-1 text-sm font-semibold transition whitespace-nowrap ${
                   currentTab === tab.id
-                    ? "border-indigo-600 text-indigo-600"
+                    ? "border-blue-600 text-blue-600"
                     : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
                 }`}
               >
@@ -186,9 +186,9 @@ export default function InstitutionDashboardPage({ activeTab: initialTab = "over
               ) : (
                 <div className="space-y-3">
                   {[
-                    { label: "Expert (Level 5)", count: skill_analytics.proficiency_distribution["Expert"] || 0, color: "bg-indigo-600" },
-                    { label: "Advanced (Level 4)", count: skill_analytics.proficiency_distribution["Advanced"] || 0, color: "bg-indigo-500" },
-                    { label: "Intermediate (Level 3)", count: skill_analytics.proficiency_distribution["Intermediate"] || 0, color: "bg-indigo-400" },
+                    { label: "Expert (Level 5)", count: skill_analytics.proficiency_distribution["Expert"] || 0, color: "bg-blue-600" },
+                    { label: "Advanced (Level 4)", count: skill_analytics.proficiency_distribution["Advanced"] || 0, color: "bg-blue-500" },
+                    { label: "Intermediate (Level 3)", count: skill_analytics.proficiency_distribution["Intermediate"] || 0, color: "bg-blue-400" },
                     { label: "Basic (Level 2)", count: skill_analytics.proficiency_distribution["Basic"] || 0, color: "bg-slate-400" },
                     { label: "Beginner (Level 1)", count: skill_analytics.proficiency_distribution["Beginner"] || 0, color: "bg-slate-300" },
                   ].map((level) => {
@@ -284,7 +284,7 @@ export default function InstitutionDashboardPage({ activeTab: initialTab = "over
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50">
                 <span className="text-sm font-medium text-slate-700">Active Students</span>
-                <span className="text-base font-bold text-indigo-600">{student_overview.active_students}</span>
+                <span className="text-base font-bold text-blue-600">{student_overview.active_students}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50">
                 <span className="text-sm font-medium text-slate-700">Students with Verified Skills</span>
@@ -315,7 +315,7 @@ export default function InstitutionDashboardPage({ activeTab: initialTab = "over
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50">
                 <span className="text-sm font-medium text-slate-700">Mentoring Guidance Notes Dispatched</span>
-                <span className="text-base font-bold text-indigo-600">{mentorship_analytics.feedback_activity_count}</span>
+                <span className="text-base font-bold text-blue-600">{mentorship_analytics.feedback_activity_count}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50">
                 <span className="text-sm font-medium text-slate-700">Pending Portfolio Reviews</span>
@@ -349,7 +349,7 @@ export default function InstitutionDashboardPage({ activeTab: initialTab = "over
                       <span className="text-xs text-slate-400">{skill.category}</span>
                     </div>
                     <div className="text-right">
-                      <Badge tone="indigo">{skill.count} students</Badge>
+                      <Badge tone="blue">{skill.count} students</Badge>
                       <p className="mt-1 text-xs text-slate-500">Avg Level {skill.average_proficiency}/5</p>
                     </div>
                   </div>
@@ -418,11 +418,11 @@ export default function InstitutionDashboardPage({ activeTab: initialTab = "over
             </p>
 
             <div className="space-y-4">
-              <div className="rounded-xl bg-indigo-50 p-6 text-center">
-                <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700">
+              <div className="rounded-xl bg-blue-50 p-6 text-center">
+                <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">
                   Average Candidate Match
                 </p>
-                <p className="mt-2 text-4xl font-extrabold text-indigo-900">
+                <p className="mt-2 text-4xl font-extrabold text-blue-900">
                   {recruitment_analytics.average_match_score > 0 ? `${recruitment_analytics.average_match_score}%` : "No data available"}
                 </p>
                 <p className="mt-2 text-xs text-slate-500">

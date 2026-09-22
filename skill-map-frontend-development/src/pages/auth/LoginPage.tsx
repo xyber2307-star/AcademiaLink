@@ -81,7 +81,7 @@ export default function LoginPage() {
         <p className="mb-2 text-sm font-medium text-slate-700">I am a</p>
         <div className="grid grid-cols-5 gap-2">
           {roles.map((r) => (
-            <button key={r.value} type="button" onClick={() => setRole(r.value)} className={cn("flex flex-col items-center gap-1 rounded-xl border px-1 py-2.5 text-[11px] font-medium transition", role === r.value ? "border-indigo-500 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-100" : "border-slate-200 text-slate-600 hover:border-slate-300")}>
+            <button key={r.value} type="button" onClick={() => setRole(r.value)} className={cn("flex flex-col items-center gap-1 rounded-xl border px-1 py-2.5 text-[11px] font-medium transition", role === r.value ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-100" : "border-slate-200 text-slate-600 hover:border-slate-300")}>
               <r.icon className="h-4 w-4" />{r.label}
             </button>
           ))}
@@ -95,8 +95,8 @@ export default function LoginPage() {
           <button type="button" onClick={() => setShow((v) => !v)} className="absolute right-3 top-[38px] text-slate-400 hover:text-slate-600">{show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <label className="inline-flex items-center gap-2 text-slate-600"><input type="checkbox" defaultChecked className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /> Remember me</label>
-          <a href="#" className="font-medium text-indigo-600 hover:text-indigo-700">Forgot password?</a>
+          <label className="inline-flex items-center gap-2 text-slate-600"><input type="checkbox" defaultChecked className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" /> Remember me</label>
+          <a href="#" className="font-medium text-blue-600 hover:text-blue-700">Forgot password?</a>
         </div>
         {error && <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={loading}>Sign in</Button>
@@ -107,7 +107,7 @@ export default function LoginPage() {
         <Button variant="outline" type="button" loading={googleLoading} onClick={submitGoogle}>Google</Button>
         <Button variant="outline" type="button" disabled title="DigiLocker integration is not available yet">DigiLocker</Button>
       </div>
-      <p className="mt-6 text-center text-sm text-slate-600">New to AcademiaLink? <Link to="/register" className="font-semibold text-indigo-600 hover:text-indigo-700">Create an account</Link></p>
+      <p className="mt-6 text-center text-sm text-slate-600">New to AcademiaLink? <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-700">Create an account</Link></p>
     </div>
   );
 }

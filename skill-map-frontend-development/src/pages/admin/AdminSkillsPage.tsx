@@ -173,13 +173,13 @@ export const AdminSkillsPage: React.FC = () => {
       <div className="flex gap-2 border-b border-slate-200">
         <button
           onClick={() => setTab("taxonomy")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 ${tab === "taxonomy" ? "border-indigo-600 text-indigo-700" : "border-transparent text-slate-500"}`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 ${tab === "taxonomy" ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500"}`}
         >
           Taxonomy
         </button>
         <button
           onClick={() => setTab("review-queue")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 flex items-center gap-1.5 ${tab === "review-queue" ? "border-indigo-600 text-indigo-700" : "border-transparent text-slate-500"}`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 flex items-center gap-1.5 ${tab === "review-queue" ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500"}`}
         >
           <Inbox className="h-3.5 w-3.5" /> Review Queue {queueItems.length > 0 && `(${queueItems.length})`}
         </button>
@@ -205,7 +205,7 @@ export const AdminSkillsPage: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search skills..."
-                className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm focus:border-blue-400 focus:outline-none"
               />
             </div>
             <div className="flex gap-2">
@@ -214,7 +214,7 @@ export const AdminSkillsPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setShowAddForm((v) => !v)}
-                className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Skill
               </button>
@@ -232,7 +232,7 @@ export const AdminSkillsPage: React.FC = () => {
                 <option value="soft">Soft</option>
                 <option value="domain">Domain</option>
               </select>
-              <button disabled={submitting} onClick={handleCreate} className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+              <button disabled={submitting} onClick={handleCreate} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
                 {submitting ? "Creating..." : "Create"}
               </button>
             </div>

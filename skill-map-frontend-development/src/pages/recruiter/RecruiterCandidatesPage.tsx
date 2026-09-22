@@ -95,7 +95,7 @@ export default function RecruiterCandidatesPage() {
               <select
                 value={selectedJobId}
                 onChange={(e) => setSelectedJobId(e.target.value)}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium focus:border-indigo-500 focus:outline-none"
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium focus:border-blue-500 focus:outline-none"
               >
                 {jobs.map((j) => (
                   <option key={j.id || j.job_id} value={j.id || j.job_id}>
@@ -111,14 +111,14 @@ export default function RecruiterCandidatesPage() {
       {/* Target Job Header Card */}
       {candidatesData && (
         <Card className="overflow-hidden">
-          <div className="h-14 bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-700" />
+          <div className="h-14 bg-gradient-to-r from-blue-700 via-blue-600 to-sky-700" />
           <CardBody className="relative pt-0">
             <div className="-mt-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
                   {candidatesData.job_title}
                 </h2>
-                <p className="text-xs font-semibold text-indigo-600">
+                <p className="text-xs font-semibold text-blue-600">
                   {candidatesData.company} • Job ID: {candidatesData.job_id}
                 </p>
               </div>
@@ -136,8 +136,8 @@ export default function RecruiterCandidatesPage() {
       )}
 
       {/* Algorithmic Notice */}
-      <div className="flex items-start gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4 text-xs text-slate-600">
-        <ShieldCheck className="h-5 w-5 shrink-0 text-indigo-600" />
+      <div className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/50 p-4 text-xs text-slate-600">
+        <ShieldCheck className="h-5 w-5 shrink-0 text-blue-600" />
         <div className="space-y-1">
           <p className="font-semibold text-slate-900">
             Deterministic Skill-Weighted Ranking
@@ -155,7 +155,7 @@ export default function RecruiterCandidatesPage() {
       {candidates.length === 0 ? (
         <Card>
           <CardBody className="py-16 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-8 ring-indigo-50/50">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-8 ring-blue-50/50">
               <Users className="h-7 w-7" />
             </div>
             <h3 className="mt-4 text-base font-bold text-slate-900">
@@ -298,7 +298,7 @@ export default function RecruiterCandidatesPage() {
                   {candidate.evidence && candidate.evidence.length > 0 && (
                     <div className="border-t border-slate-100 pt-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <FolderGit2 className="h-4 w-4 text-indigo-600" />
+                        <FolderGit2 className="h-4 w-4 text-blue-600" />
                         <span className="text-xs font-bold text-slate-800">
                           Candidate Portfolio & Supporting Evidence
                         </span>
@@ -331,7 +331,7 @@ export default function RecruiterCandidatesPage() {
                                 </Badge>
                               </div>
                               {ev.issuer && (
-                                <p className="text-[11px] text-indigo-600 font-medium">
+                                <p className="text-[11px] text-blue-600 font-medium">
                                   {ev.issuer}
                                 </p>
                               )}
@@ -353,7 +353,7 @@ export default function RecruiterCandidatesPage() {
                                     href={ev.project_url}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-indigo-600 hover:underline"
+                                    className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-blue-600 hover:underline"
                                   >
                                     <Globe className="h-3 w-3" />
                                     Demo

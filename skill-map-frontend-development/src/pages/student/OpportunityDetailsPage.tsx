@@ -156,7 +156,7 @@ export default function OpportunityDetailsPage() {
 
       {/* Header Banner */}
       <Card className="overflow-hidden">
-        <div className="h-20 bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600" />
+        <div className="h-20 bg-gradient-to-r from-blue-600 via-blue-700 to-sky-600" />
         <CardBody className="relative pt-0">
           <div className="-mt-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-end gap-4">
@@ -165,7 +165,7 @@ export default function OpportunityDetailsPage() {
               </div>
               <div className="pb-1">
                 <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-                <p className="text-sm font-medium text-indigo-600">{company}</p>
+                <p className="text-sm font-medium text-blue-600">{company}</p>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                   <span className="inline-flex items-center gap-1">
                     <MapPin className="h-3.5 w-3.5" />
@@ -203,7 +203,7 @@ export default function OpportunityDetailsPage() {
 
       {/* Match Engine Analysis Section */}
       {match && (
-        <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50/40 via-white to-violet-50/30">
+        <Card className="border-blue-100 bg-gradient-to-br from-blue-50/40 via-white to-sky-50/30">
           <CardHeader
             title="Skill Matching & Gap Analysis"
             subtitle="Calculated in real time by comparing your verified student profile against job requirements."
@@ -228,7 +228,7 @@ export default function OpportunityDetailsPage() {
 
               <div className="space-y-3">
                 <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
-                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+                  <p className="text-xs font-bold uppercase tracking-wider text-blue-600">
                     Why am I or am I not a good match?
                   </p>
                   <p className="mt-1 text-sm text-slate-700 leading-relaxed font-medium">

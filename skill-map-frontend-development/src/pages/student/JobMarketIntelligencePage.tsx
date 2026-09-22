@@ -679,7 +679,7 @@ export function JobMarketIntelligencePage() {
 
             <Card className="p-5 border-slate-200 dark:border-slate-800">
               <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-indigo-500" />
+                <Briefcase className="w-4 h-4 text-blue-500" />
                 Employment Type Distribution
               </h3>
               {!overview?.employment_type_distribution || Object.keys(overview.employment_type_distribution).length === 0 ? (

@@ -8,6 +8,7 @@ import { Logo } from "../../components/ui/Logo";
 import { Button } from "../../components/ui/Button";
 import { ProgressRing } from "../../components/ui/Progress";
 import { SkillBadge } from "../../components/ui/SkillBadge";
+import { Avatar } from "../../components/ui/Avatar";
 
 const features = [
   { icon: GitCompare, title: "Skill Gap Analysis", desc: "Compare student competencies against live industry benchmarks and identify exactly what to learn next." },
@@ -73,30 +74,35 @@ export default function LandingPage() {
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.12),_transparent_60%)]" />
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pt-24">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700"><Sparkles className="h-3.5 w-3.5" /> Smart India Hackathon · SIH26044</span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"><Sparkles className="h-3.5 w-3.5" /> Smart India Hackathon · SIH26044</span>
             <h1 className="mt-5 text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-              Map skills. Close gaps. <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Get placed.</span>
+              Map skills. Close gaps. <span className="bg-gradient-to-r from-blue-600 to-sky-600 bg-clip-text text-transparent">Get placed.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-slate-600">
-              SKILL MAP is a unified portal for academia–industry collaboration — turning student competencies into verified, industry-aligned skill profiles that drive internships and placements.
+              AcademiaLink is a unified portal for academia–industry collaboration — turning student competencies into verified, industry-aligned skill profiles that drive internships and placements.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/register"><Button size="lg" icon={<ArrowRight className="h-4 w-4" />} className="w-full sm:w-auto">Create free account</Button></Link>
               <Link to="/login"><Button size="lg" variant="outline" className="w-full sm:w-auto">Explore demo dashboard</Button></Link>
             </div>
             <div className="mt-10 grid grid-cols-3 gap-6 border-t border-slate-100 pt-8">
-              {[["12,400+", "Students mapped"], ["380+", "Partner companies"], ["92%", "Placement match rate"]].map(([v, l]) => (
-                <div key={l}><p className="text-2xl font-bold text-slate-900 sm:text-3xl">{v}</p><p className="text-xs text-slate-500 sm:text-sm">{l}</p></div>
+              {[
+                ["Deterministic", "Skill scoring, not guesswork"],
+                ["Verified", "Faculty-reviewed evidence"],
+                ["Explainable", "Transparent match scores"],
+              ].map(([v, l]) => (
+                <div key={l}><p className="text-lg font-bold text-slate-900 sm:text-xl">{v}</p><p className="text-xs text-slate-500 sm:text-sm">{l}</p></div>
               ))}
             </div>
+            <p className="mt-3 text-xs text-slate-400">SIH 2026 prototype (SIH26044) — figures shown elsewhere in the app reflect real platform data, not projected user counts.</p>
           </div>
 
           {/* Hero mock dashboard */}
           <div className="relative">
-            <div className="absolute -inset-4 -z-10 rounded-[2rem] bg-gradient-to-br from-indigo-200/60 via-violet-200/40 to-sky-200/60 blur-2xl" />
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl shadow-indigo-200/50">
+            <div className="absolute -inset-4 -z-10 rounded-[2rem] bg-gradient-to-br from-blue-200/60 via-sky-200/40 to-sky-200/60 blur-2xl" />
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl shadow-blue-200/50">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3"><img src="https://i.pravatar.cc/80?img=47" className="h-10 w-10 rounded-full" alt="" /><div><p className="text-sm font-semibold">Ananya Sharma</p><p className="text-xs text-slate-500">B.Tech CSE · NIT Karnataka</p></div></div>
+                <div className="flex items-center gap-3"><Avatar name="Ananya Sharma" size="md" /><div><p className="text-sm font-semibold">Ananya Sharma</p><p className="text-xs text-slate-500">B.Tech CSE · NIT Karnataka</p></div></div>
                 <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Placement ready</span>
               </div>
               <div className="mt-5 grid grid-cols-3 gap-3">
@@ -108,9 +114,9 @@ export default function LandingPage() {
                 <p className="text-xs font-semibold text-slate-500">TOP SKILLS</p>
                 <div className="mt-2 flex flex-wrap gap-2"><SkillBadge name="React" score={86} verified /><SkillBadge name="JavaScript" score={88} verified /><SkillBadge name="Git" score={90} verified /><SkillBadge name="System Design" score={42} /></div>
               </div>
-              <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-3">
-                <div className="flex items-center justify-between text-xs"><span className="font-semibold text-indigo-900">Frontend Intern · Razorpay</span><span className="font-bold text-indigo-700">91% match</span></div>
-                <div className="mt-2 h-1.5 rounded-full bg-white"><div className="h-full w-[91%] rounded-full bg-indigo-600" /></div>
+              <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-3">
+                <div className="flex items-center justify-between text-xs"><span className="font-semibold text-blue-900">Frontend Intern · Razorpay</span><span className="font-bold text-blue-700">91% match</span></div>
+                <div className="mt-2 h-1.5 rounded-full bg-white"><div className="h-full w-[91%] rounded-full bg-blue-600" /></div>
               </div>
             </div>
           </div>
@@ -123,8 +129,8 @@ export default function LandingPage() {
           <div className="mx-auto max-w-2xl text-center"><h2 className="text-3xl font-bold tracking-tight">One platform, every stakeholder</h2><p className="mt-3 text-slate-600">Purpose-built experiences for everyone in the academia–industry ecosystem.</p></div>
           <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {roles.map((r) => (
-              <div key={r.label} className="rounded-2xl border border-slate-200 bg-white p-5 text-center transition hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-100">
-                <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><r.icon className="h-5 w-5" /></span>
+              <div key={r.label} className="rounded-2xl border border-slate-200 bg-white p-5 text-center transition hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-100">
+                <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><r.icon className="h-5 w-5" /></span>
                 <p className="mt-3 text-sm font-semibold">{r.label}</p><p className="mt-1 text-xs text-slate-500">{r.desc}</p>
               </div>
             ))}
@@ -138,8 +144,8 @@ export default function LandingPage() {
           <div className="mx-auto max-w-2xl text-center"><h2 className="text-3xl font-bold tracking-tight">Everything needed to go from classroom to career</h2><p className="mt-3 text-slate-600">Skill intelligence, verified evidence and opportunity matching — in one place.</p></div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
-              <div key={f.title} className="group rounded-2xl border border-slate-200 p-6 transition hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-100/60">
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-200"><f.icon className="h-6 w-6" /></span>
+              <div key={f.title} className="group rounded-2xl border border-slate-200 p-6 transition hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100/60">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-sky-600 text-white shadow-md shadow-blue-200"><f.icon className="h-6 w-6" /></span>
                 <h3 className="mt-5 text-lg font-semibold">{f.title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-600">{f.desc}</p>
               </div>
             ))}
@@ -150,10 +156,10 @@ export default function LandingPage() {
       {/* How it works */}
       <section id="how" className="bg-slate-950 py-20 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center"><h2 className="text-3xl font-bold tracking-tight">How SKILL MAP works</h2><p className="mt-3 text-slate-400">A guided journey from self-awareness to placement.</p></div>
+          <div className="mx-auto max-w-2xl text-center"><h2 className="text-3xl font-bold tracking-tight">How AcademiaLink works</h2><p className="mt-3 text-slate-400">A guided journey from self-awareness to placement.</p></div>
           <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {steps.map((s) => (
-              <div key={s.n} className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur"><p className="text-sm font-bold text-indigo-400">{s.n}</p><h3 className="mt-3 text-lg font-semibold">{s.title}</h3><p className="mt-2 text-sm text-slate-400">{s.desc}</p></div>
+              <div key={s.n} className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur"><p className="text-sm font-bold text-blue-400">{s.n}</p><h3 className="mt-3 text-lg font-semibold">{s.title}</h3><p className="mt-2 text-sm text-slate-400">{s.desc}</p></div>
             ))}
           </div>
         </div>
@@ -161,14 +167,14 @@ export default function LandingPage() {
 
       {/* CTA */}
       <section className="py-20">
-        <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-700 px-6 py-14 text-center text-white shadow-2xl shadow-indigo-300 sm:px-12">
+        <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-sky-700 px-6 py-14 text-center text-white shadow-2xl shadow-blue-300 sm:px-12">
           <h2 className="text-3xl font-bold sm:text-4xl">Ready to map your future?</h2>
-          <p className="mx-auto mt-4 max-w-xl text-indigo-100">Join thousands of students and hundreds of industry partners building India's most trusted skill ecosystem.</p>
+          <p className="mx-auto mt-4 max-w-xl text-blue-100">Join thousands of students and hundreds of industry partners building India's most trusted skill ecosystem.</p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link to="/register"><Button size="lg" variant="secondary" className="w-full bg-white text-indigo-700 hover:bg-indigo-50 sm:w-auto">Get started free</Button></Link>
+            <Link to="/register"><Button size="lg" variant="secondary" className="w-full bg-white text-blue-700 hover:bg-blue-50 sm:w-auto">Get started free</Button></Link>
             <Link to="/login"><Button size="lg" variant="ghost" className="w-full text-white hover:bg-white/10 hover:text-white sm:w-auto">Sign in</Button></Link>
           </div>
-          <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-indigo-100">
+          <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-blue-100">
             {["Free for students", "NEP 2020 aligned", "NSQF skill taxonomy", "Verified by institutions"].map((t) => <span key={t} className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4" />{t}</span>)}
           </div>
         </div>
@@ -177,7 +183,7 @@ export default function LandingPage() {
       <footer className="border-t border-slate-100 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-sm text-slate-500 sm:flex-row sm:px-6 lg:px-8">
           <Logo />
-          <p>© 2025 SKILL MAP · Portal for Academia–Industry Collaboration · SIH26044</p>
+          <p>© 2025 AcademiaLink · Portal for Academia–Industry Collaboration · SIH26044</p>
         </div>
       </footer>
     </div>

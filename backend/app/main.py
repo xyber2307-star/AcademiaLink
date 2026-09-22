@@ -14,11 +14,13 @@ load_dotenv(dotenv_path=env_path)
 from app.firebase import initialize_firebase, is_firebase_ready
 from app.routes import (
     admin,
+    admin_skills,
     ai_assistant,
     applications,
     evidence,
     faculty,
     institution,
+    institutions,
     jobs,
     learning_paths,
     market,
@@ -26,6 +28,7 @@ from app.routes import (
     notifications,
     recruiter,
     skills,
+    skills_taxonomy,
     users,
 )
 
@@ -46,6 +49,14 @@ async def lifespan(app: FastAPI):
         logger.info("Firebase Admin initialized successfully.")
     else:
         logger.warning("Firebase Admin is not yet configured. Provide credentials in backend/.env to access Firestore.")
+
+    from app.services.institution_data import get_registry
+    registry = get_registry()
+    if registry.is_available:
+        logger.info("Institution registry loaded: %d records (source: %s).", registry.record_count, registry.dataset_meta.get("source"))
+    else:
+        logger.warning("Institution registry could not be loaded - institution search will report SOURCE_UNAVAILABLE.")
+
     yield
     logger.info("Shutting down AcademiaLINK Backend API...")
 
@@ -114,10 +125,13 @@ app.include_router(recruiter.router, prefix="/api")
 app.include_router(faculty.router, prefix="/api")
 app.include_router(faculty.student_mentor_router, prefix="/api")
 app.include_router(institution.router, prefix="/api")
+app.include_router(institutions.router, prefix="/api")
 app.include_router(ai_assistant.router, prefix="/api")
 app.include_router(applications.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(admin_skills.router, prefix="/api")
+app.include_router(skills_taxonomy.router, prefix="/api")
 app.include_router(market.router, prefix="/api")
 
 

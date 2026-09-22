@@ -60,7 +60,7 @@ export const MyApplicationsPage: React.FC = () => {
       case "shortlisted":
         return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 font-bold">Shortlisted</span>;
       case "selected":
-        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 font-bold">Selected</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 font-bold">Selected</span>;
       case "rejected":
         return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">Not Selected</span>;
       case "withdrawn":
@@ -91,7 +91,7 @@ export const MyApplicationsPage: React.FC = () => {
           </button>
           <Link
             to="/student/jobs"
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition shadow-sm"
           >
             <Briefcase className="w-4 h-4" />
             Browse Opportunities
@@ -110,7 +110,7 @@ export const MyApplicationsPage: React.FC = () => {
       {/* Loading state */}
       {loading && (
         <div className="py-20 text-center space-y-3 bg-white rounded-2xl border border-gray-100">
-          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-sm text-gray-500">Loading your applications...</p>
         </div>
       )}
@@ -118,7 +118,7 @@ export const MyApplicationsPage: React.FC = () => {
       {/* Empty State */}
       {!loading && !error && applications.length === 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center space-y-4">
-          <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
             <Briefcase className="w-8 h-8" />
           </div>
           <div className="max-w-md mx-auto">
@@ -129,7 +129,7 @@ export const MyApplicationsPage: React.FC = () => {
           </div>
           <Link
             to="/student/jobs"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition shadow-sm"
           >
             Explore Jobs
             <ArrowUpRight className="w-4 h-4" />
@@ -172,7 +172,7 @@ export const MyApplicationsPage: React.FC = () => {
                 {app.match_score !== undefined && (
                   <div className="text-right">
                     <span className="text-xs text-gray-400 block">Match Score</span>
-                    <span className="text-xl font-extrabold text-indigo-600">
+                    <span className="text-xl font-extrabold text-blue-600">
                       {Math.round(app.match_score)}%
                     </span>
                   </div>
@@ -181,7 +181,7 @@ export const MyApplicationsPage: React.FC = () => {
 
               {/* Feedback or Notes */}
               {app.feedback && (
-                <div className="p-3.5 bg-indigo-50/60 border border-indigo-100 rounded-xl text-xs text-indigo-900">
+                <div className="p-3.5 bg-blue-50/60 border border-blue-100 rounded-xl text-xs text-blue-900">
                   <span className="font-semibold block mb-0.5">Recruiter Feedback:</span>
                   {app.feedback}
                 </div>

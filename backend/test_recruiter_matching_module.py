@@ -177,7 +177,11 @@ def test_input_validation():
                 "application_url": "javascript:alert(1)",
             },
         )
-        assert resp_bad_url.status_code == 400, f"Expected 400, got {resp_bad_url.status_code}"
+        # A javascript:/non-http(s) application_url is now rejected at the schema layer (422)
+        # via a strict pattern on JobCreate.application_url, rather than by a business-logic
+        # check after Pydantic already accepted the payload (which returned 400) - both reject
+        # the request outright, just at different layers, so accept either.
+        assert resp_bad_url.status_code in [400, 422], f"Expected 400/422, got {resp_bad_url.status_code}"
 
         print("[PASS] Input validation accurately enforces positive weights, 1-5 scale, and valid URLs.")
     finally:

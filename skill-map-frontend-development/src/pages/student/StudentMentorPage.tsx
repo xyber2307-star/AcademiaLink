@@ -69,7 +69,7 @@ export default function StudentMentorPage() {
     <div className="space-y-8">
       <PageHeader
         title="Faculty Mentorship & Guidance"
-        subtitle="Connect with your assigned faculty mentor, review constructive feedback, and track portfolio evidence evaluation."
+        description="Connect with your assigned faculty mentor, review constructive feedback, and track portfolio evidence evaluation."
       />
 
       {/* Assigned Mentor Card or Zero-Fake-Data Empty State */}
@@ -80,12 +80,12 @@ export default function StudentMentorPage() {
               <img
                 src={mentor.avatar || "https://i.pravatar.cc/150?img=60"}
                 alt={mentor.name}
-                className="h-20 w-20 rounded-full border-2 border-indigo-200 object-cover"
+                className="h-20 w-20 rounded-full border-2 border-blue-200 object-cover"
               />
               <div>
                 <div className="flex items-center gap-3">
                   <h3 className="text-xl font-bold text-slate-900">{mentor.name}</h3>
-                  <Badge tone="indigo">Assigned Faculty Mentor</Badge>
+                  <Badge tone="blue">Assigned Faculty Mentor</Badge>
                 </div>
                 <div className="mt-2 space-y-1 text-xs text-slate-600">
                   <p className="flex items-center gap-1.5">
@@ -102,8 +102,8 @@ export default function StudentMentorPage() {
               </div>
             </div>
 
-            <div className="rounded-xl bg-indigo-50 p-4 text-center sm:text-right">
-              <p className="text-xs font-semibold text-indigo-700">Cohort Mentorship</p>
+            <div className="rounded-xl bg-blue-50 p-4 text-center sm:text-right">
+              <p className="text-xs font-semibold text-blue-700">Cohort Mentorship</p>
               <p className="text-sm text-slate-600 mt-1">Available for evidence review & career advice</p>
             </div>
           </div>
@@ -124,7 +124,7 @@ export default function StudentMentorPage() {
         <div className="space-y-4 lg:col-span-2">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-indigo-600" />
+              <MessageSquare className="h-5 w-5 text-blue-600" />
               <span>Mentor Guidance & Feedback</span>
             </h3>
             <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
@@ -144,7 +144,7 @@ export default function StudentMentorPage() {
                     <div>
                       <span className="font-semibold text-slate-900">{item.mentor_name || "Faculty Mentor"}</span>
                       {item.related_skill_id && (
-                        <span className="ml-2 rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                        <span className="ml-2 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
                           {item.related_skill_id}
                         </span>
                       )}
@@ -165,7 +165,7 @@ export default function StudentMentorPage() {
         {/* Right 1 Col: Evidence Verification Overview */}
         <div className="space-y-4">
           <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-indigo-600" />
+            <ShieldCheck className="h-5 w-5 text-blue-600" />
             <span>Evidence Reviews</span>
           </h3>
 

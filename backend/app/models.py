@@ -1,8 +1,35 @@
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+# Common URL pattern used to validate optional link/URL fields that are actually submitted by
+# a client (never applied to fields that are populated from external/legacy data sources,
+# where a stricter pattern could reject real historical values on read).
+_URL_PATTERN = r"^(https?://[^\s]+)$"
+_OPTIONAL_URL_PATTERN = r"^($|https?://[^\s]+)$"
+
+
+class StrictRequestModel(BaseModel):
+    """
+    Base for models that represent an incoming API request body ONLY - never used to
+    deserialize a stored Firestore document (verified per-model before adopting this base;
+    see the comment above each such model). Enforces:
+      - extra="forbid": any field the client sends that isn't declared is a 422, not silently
+        dropped or coerced.
+      - str_strip_whitespace: leading/trailing whitespace is trimmed before validation, so
+        e.g. a title of "   " correctly fails a min_length check instead of passing.
+      - str_max_length: a generous backstop ceiling on every string field that doesn't declare
+        its own tighter Field(max_length=...) below, so no request field is ever truly
+        unbounded even if a specific limit was missed.
+    Individual fields still declare their own tighter min_length/max_length/pattern via
+    Field() where a stricter shape is meaningful (e.g. a title is 1-150 chars, not 5000).
+    """
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, str_max_length=5000)
+
 
 UserRole = Literal["student", "faculty", "recruiter", "institution", "admin", "mentor"]
+InstitutionVerificationStatus = Literal["VERIFIED", "NOT_VERIFIED", "SOURCE_UNAVAILABLE"]
 SkillCategory = Literal["Technical", "Soft", "Domain", "Tools"]
 SkillLevel = Literal["Beginner", "Intermediate", "Advanced", "Expert"]
 OpportunityType = Literal["Internship", "Full-time", "Apprenticeship", "Project"]
@@ -54,6 +81,16 @@ class UserProfileBase(BaseModel):
     avatar: Optional[str] = "https://i.pravatar.cc/150?img=47"
     institution: Optional[str] = ""
     institution_id: Optional[str] = ""
+    # Canonical institution fields - never set directly by a client request model (see
+    # UserProfileUpdate below, which deliberately omits these). Populated only by the
+    # server in PUT /users/me after it validates institution_id against the authoritative
+    # institution registry (app/services/institution_data.py). See docs/INSTITUTION_VERIFICATION.md.
+    institutionCode: Optional[str] = None
+    institutionState: Optional[str] = None
+    institutionDistrict: Optional[str] = None
+    institutionVerificationStatus: Optional[InstitutionVerificationStatus] = None
+    institutionVerificationSource: Optional[str] = None
+    institutionLastVerifiedAt: Optional[str] = None
     department: Optional[str] = ""
     degree: Optional[str] = ""
     branch: Optional[str] = ""
@@ -80,32 +117,64 @@ class UserProfileCreate(UserProfileBase):
     pass
 
 
-class UserProfileUpdate(BaseModel):
-    name: Optional[str] = None
-    phone: Optional[str] = None
-    avatar: Optional[str] = None
-    institution: Optional[str] = None
-    institution_id: Optional[str] = None
-    department: Optional[str] = None
-    degree: Optional[str] = None
-    branch: Optional[str] = None
-    year: Optional[str] = None
-    cgpa: Optional[float] = None
-    rollNo: Optional[str] = None
-    location: Optional[str] = None
-    headline: Optional[str] = None
-    about: Optional[str] = None
-    targetRole: Optional[str] = None
-    profileCompletion: Optional[int] = None
-    skillScore: Optional[int] = None
-    careerReadiness: Optional[int] = None
+class UserProfileUpdate(StrictRequestModel):
+    """
+    A user's self-service profile edit (PUT /users/me). Deliberately has NO `role` field -
+    role changes are a separate, admin-only endpoint - so this schema itself is part of the
+    privilege-escalation defense, not just a length/format check.
+    """
+
+    name: Optional[str] = Field(None, min_length=1, max_length=120)
+    phone: Optional[str] = Field(None, max_length=30, pattern=r"^[0-9+\-() .]*$")
+    avatar: Optional[str] = Field(None, max_length=1000, pattern=_OPTIONAL_URL_PATTERN)
+    # `institution` is free-text (kept for backward compatibility / institutions not yet
+    # in the registry) - saving it alone always yields NOT_VERIFIED. `institution_id`, when
+    # provided, must be a real id returned by GET /institutions/search - the server looks it
+    # up and derives institutionCode/State/District/verificationStatus itself; those derived
+    # fields are intentionally NOT settable here (see UserProfileBase comment above).
+    institution: Optional[str] = Field(None, max_length=200)
+    institution_id: Optional[str] = Field(None, max_length=150)
+    department: Optional[str] = Field(None, max_length=150)
+    degree: Optional[str] = Field(None, max_length=100)
+    branch: Optional[str] = Field(None, max_length=100)
+    year: Optional[str] = Field(None, max_length=20)
+    cgpa: Optional[float] = Field(None, ge=0, le=10)
+    rollNo: Optional[str] = Field(None, max_length=50)
+    location: Optional[str] = Field(None, max_length=150)
+    headline: Optional[str] = Field(None, max_length=200)
+    about: Optional[str] = Field(None, max_length=2000)
+    targetRole: Optional[str] = Field(None, max_length=150)
+    profileCompletion: Optional[int] = Field(None, ge=0, le=100)
+    skillScore: Optional[int] = Field(None, ge=0, le=100)
+    careerReadiness: Optional[int] = Field(None, ge=0, le=100)
     links: Optional[SocialLinks] = None
-    education: Optional[List[EducationEntry]] = None
-    projects: Optional[List[ProjectEntry]] = None
-    certifications: Optional[List[CertificationEntry]] = None
-    experience: Optional[List[ExperienceEntry]] = None
-    target_companies: Optional[List[str]] = None
-    dream_companies: Optional[List[str]] = None
+    education: Optional[List[EducationEntry]] = Field(None, max_length=50)
+    projects: Optional[List[ProjectEntry]] = Field(None, max_length=100)
+    certifications: Optional[List[CertificationEntry]] = Field(None, max_length=100)
+    experience: Optional[List[ExperienceEntry]] = Field(None, max_length=100)
+    target_companies: Optional[List[str]] = Field(None, max_length=100)
+    dream_companies: Optional[List[str]] = Field(None, max_length=100)
+
+
+# Roles a user may self-select at signup. Deliberately excludes "admin" and "mentor" -
+# neither is offered by the registration UI, and both must only ever be granted by an
+# existing admin via PATCH /admin/users/{uid}/role (AdminRoleUpdateRequest).
+SelfRegisterableRole = Literal["student", "faculty", "recruiter", "institution"]
+
+
+class RegisterCompleteRequest(StrictRequestModel):
+    """
+    PUT /users/me/register - the ONE place a client may supply a `role` at all, and only
+    because get_current_user's auto-provisioning always defaults a brand-new account to
+    "student" (itself a privilege-escalation defense - see UserProfileUpdate's docstring).
+    The route applies this role only once per account (guarded by the `roleFinalized` flag
+    on the Firestore document); every call after that silently no-ops the role field, so
+    this can never be replayed to change an already-finalized account's role.
+    """
+
+    name: Optional[str] = Field(None, min_length=1, max_length=120)
+    role: SelfRegisterableRole
+    institution: Optional[str] = Field(None, max_length=200)
 
 
 class UserProfileResponse(UserProfileBase):
@@ -125,6 +194,46 @@ class AuthMeResponse(BaseModel):
     profile: Optional[UserProfileResponse] = None
 
 
+# ===================== INSTITUTION REGISTRY / VERIFICATION MODELS =====================
+# Backed by app/services/institution_data.py - a deterministic, non-AI lookup over a
+# locally-cached authoritative dataset (AICTE Institute Permanent ID list). See
+# docs/INSTITUTION_VERIFICATION.md for the full architecture and data-source notes.
+
+class InstitutionSearchResult(BaseModel):
+    institutionId: str
+    aicteId: str
+    name: str
+    state: Optional[str] = None
+    district: Optional[str] = None
+    city: Optional[str] = None
+    verificationStatus: InstitutionVerificationStatus = "VERIFIED"
+    verificationSource: str = "AICTE"
+
+
+class InstitutionSearchResponse(BaseModel):
+    results: List[InstitutionSearchResult]
+    source: str
+    sourceAvailable: bool
+    datasetDate: Optional[str] = None
+
+
+class InstitutionDetail(InstitutionSearchResult):
+    sourceReference: Optional[str] = None
+    datasetDate: Optional[str] = None
+    programLevelApprovalChecked: bool = False
+
+
+class InstitutionVerificationStatsResponse(BaseModel):
+    """Admin-only aggregate, computed live from real users/{uid} documents - never a fake/static figure."""
+    totalUsersWithInstitution: int
+    verifiedCount: int
+    notVerifiedCount: int
+    sourceUnavailableCount: int
+    distinctVerifiedInstitutions: int
+    verificationSource: Optional[str] = "AICTE"
+    computedAt: str
+
+
 # ===================== SKILL & EVIDENCE MODELS =====================
 
 EvidenceType = Literal["project", "certificate", "course", "assessment", "other"]
@@ -138,18 +247,27 @@ PROFICIENCY_LEVELS: Dict[int, str] = {
 }
 
 
+# NOTE: SkillEvidence is reused both as request-input (inside SkillCreate/SkillUpdate below)
+# AND to deserialize evidence already stored on a Firestore skill document
+# (skills.py::serialize_skill does SkillEvidence(**evidence_dict) on real, possibly older,
+# data) - it therefore does NOT use StrictRequestModel/extra="forbid", since a stray legacy
+# field on an existing document must not turn a read into a 500. Field lengths are still
+# capped as a sane backstop, which real data is expected to already satisfy.
 class SkillEvidence(BaseModel):
     type: EvidenceType = "other"
-    title: Optional[str] = ""
-    url: Optional[str] = ""
-    description: Optional[str] = ""
+    title: Optional[str] = Field(default="", max_length=200)
+    url: Optional[str] = Field(default="", max_length=1000)
+    description: Optional[str] = Field(default="", max_length=2000)
     verified: bool = False
-    issuedBy: Optional[str] = ""
-    issueDate: Optional[str] = ""
+    issuedBy: Optional[str] = Field(default="", max_length=200)
+    issueDate: Optional[str] = Field(default="", max_length=50)
 
 
-class SkillBase(BaseModel):
-    name: str
+class SkillBase(StrictRequestModel):
+    """Request-only (never used to deserialize a stored skill - see SkillResponse, which is a
+    separate, standalone class built via explicit keyword construction in serialize_skill())."""
+
+    name: str = Field(..., min_length=1, max_length=120)
     proficiency: int = Field(
         ...,
         ge=1,
@@ -157,7 +275,7 @@ class SkillBase(BaseModel):
         description="Numerical proficiency scale: 1=Beginner, 2=Basic, 3=Intermediate, 4=Advanced, 5=Expert",
     )
     category: SkillCategory = "Technical"
-    source: Optional[str] = "manual"
+    source: Optional[str] = Field(default="manual", max_length=50)
     evidence: Optional[SkillEvidence] = None
 
 
@@ -165,8 +283,8 @@ class SkillCreate(SkillBase):
     pass
 
 
-class SkillUpdate(BaseModel):
-    name: Optional[str] = None
+class SkillUpdate(StrictRequestModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=120)
     proficiency: Optional[int] = Field(
         None,
         ge=1,
@@ -174,7 +292,7 @@ class SkillUpdate(BaseModel):
         description="Numerical proficiency scale: 1=Beginner, 2=Basic, 3=Intermediate, 4=Advanced, 5=Expert",
     )
     category: Optional[SkillCategory] = None
-    source: Optional[str] = None
+    source: Optional[str] = Field(None, max_length=50)
     evidence: Optional[SkillEvidence] = None
 
 
@@ -195,6 +313,81 @@ class SkillResponse(BaseModel):
     updatedAt: Optional[str] = None
 
 
+# ===================== SKILL TAXONOMY (canonical skill/tool/discipline registry) =====================
+# Distinct from SkillCategory above (a narrow axis - Technical/Soft/Domain/Tools - used on a
+# STUDENT's individual skill record). This is the broader, admin-managed canonical registry
+# living in Firestore collection 'skills', organized by discipline category/subcategory, so new
+# skills can be added/edited without any frontend or backend redeploy.
+
+SkillTaxonomyType = Literal["technical", "tool", "soft", "domain"]
+
+
+class SkillTaxonomyEntry(BaseModel):
+    id: str
+    name: str
+    category: str
+    subcategory: Optional[str] = None
+    type: SkillTaxonomyType = "technical"
+    description: Optional[str] = ""
+    aliases: List[str] = Field(default_factory=list)
+    relatedSkills: List[str] = Field(default_factory=list)
+    parentSkill: Optional[str] = None
+    assessmentAvailable: bool = False
+    active: bool = True
+    source: str = "seed"
+    version: int = 1
+    popularity: int = 0
+    createdAt: Optional[str] = None
+    updatedAt: Optional[str] = None
+
+
+class SkillTaxonomyCreate(StrictRequestModel):
+    name: str = Field(..., min_length=1, max_length=120)
+    category: str = Field(..., min_length=1, max_length=100)
+    subcategory: Optional[str] = Field(None, max_length=100)
+    type: SkillTaxonomyType = "technical"
+    description: Optional[str] = Field(default="", max_length=1000)
+    aliases: List[str] = Field(default_factory=list, max_length=50)
+    relatedSkills: List[str] = Field(default_factory=list, max_length=50)
+    parentSkill: Optional[str] = Field(None, max_length=150)
+    assessmentAvailable: bool = False
+
+
+class SkillTaxonomyUpdate(StrictRequestModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=120)
+    category: Optional[str] = Field(None, min_length=1, max_length=100)
+    subcategory: Optional[str] = Field(None, max_length=100)
+    type: Optional[SkillTaxonomyType] = None
+    description: Optional[str] = Field(None, max_length=1000)
+    aliases: Optional[List[str]] = Field(None, max_length=50)
+    relatedSkills: Optional[List[str]] = Field(None, max_length=50)
+    parentSkill: Optional[str] = Field(None, max_length=150)
+    assessmentAvailable: Optional[bool] = None
+    active: Optional[bool] = None
+
+
+class SkillTaxonomyCategoriesResponse(BaseModel):
+    categories: List[str]
+    subcategories_by_category: Dict[str, List[str]]
+
+
+class SkillMergeRequest(StrictRequestModel):
+    source_skill_id: str = Field(..., min_length=1, max_length=200)
+    target_skill_id: str = Field(..., min_length=1, max_length=200)
+
+
+class SkillReviewQueueItem(BaseModel):
+    id: str
+    term: str
+    occurrences: int = 1
+    example_context: Optional[str] = None
+    status: Literal["pending", "approved", "rejected"] = "pending"
+    createdAt: Optional[str] = None
+    updatedAt: Optional[str] = None
+
+
+
+
 class AssessmentQuestion(BaseModel):
     id: str
     question: str
@@ -202,15 +395,15 @@ class AssessmentQuestion(BaseModel):
     difficulty: int = 1
 
 
-class AssessmentAnswer(BaseModel):
-    questionId: str
-    selectedOption: int
+class AssessmentAnswer(StrictRequestModel):
+    questionId: str = Field(..., min_length=1, max_length=100)
+    selectedOption: int = Field(..., ge=0, le=25)
 
 
-class AssessmentSubmission(BaseModel):
-    skillName: str
+class AssessmentSubmission(StrictRequestModel):
+    skillName: str = Field(..., min_length=1, max_length=120)
     category: SkillCategory = "Technical"
-    answers: List[AssessmentAnswer]
+    answers: List[AssessmentAnswer] = Field(..., min_length=1, max_length=50)
 
 
 class AssessmentResultResponse(BaseModel):
@@ -228,8 +421,11 @@ class AssessmentResultResponse(BaseModel):
 
 # ===================== JOB / INTERNSHIP MODELS =====================
 
+# NOTE: shared - used both as request input (inside JobCreate/JobUpdate) and to deserialize
+# skills already stored on real job/market documents (RequiredSkill(**rs) in
+# market_data_provider.py). Does NOT use StrictRequestModel/extra="forbid" for that reason.
 class RequiredSkill(BaseModel):
-    name: str
+    name: str = Field(..., max_length=150)
     required_proficiency: float = Field(
         default=3.0,
         ge=1.0,
@@ -340,24 +536,43 @@ class JobBase(BaseModel):
 
 
 class JobCreate(JobBase):
-    pass
+    """
+    Strict on top of JobBase: extra="forbid" here only (NOT on JobBase, which JobResponse
+    also inherits and builds via JobResponse(**firestore_doc) - a stray legacy field on an
+    existing job document must not turn a read into a 500). Field constraints below narrow
+    JobBase's untyped `str` declarations for the fields most worth bounding on the write path.
+    """
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, str_max_length=5000)
+
+    title: str = Field(..., min_length=2, max_length=150)
+    company: str = Field(..., min_length=1, max_length=150)
+    description: str = Field(..., min_length=1, max_length=5000)
+    location: str = Field(..., min_length=1, max_length=150)
+    stipend: Optional[str] = Field("₹40,000/mo", max_length=50)
+    logo: Optional[str] = Field("CO", max_length=10)
+    required_skills: List[RequiredSkill] = Field(default_factory=list, max_length=50)
+    preferred_skills: List[str] = Field(default_factory=list, max_length=50)
+    minimum_proficiency: Optional[int] = Field(3, ge=1, le=5)
+    application_url: Optional[str] = Field("", max_length=1000, pattern=_OPTIONAL_URL_PATTERN)
+    deadline: Optional[str] = Field("31 Dec 2026", max_length=50)
 
 
-class JobUpdate(BaseModel):
-    title: Optional[str] = None
-    company: Optional[str] = None
-    description: Optional[str] = None
-    location: Optional[str] = None
-    employment_type: Optional[str] = None
-    type: Optional[str] = None
+class JobUpdate(StrictRequestModel):
+    title: Optional[str] = Field(None, min_length=2, max_length=150)
+    company: Optional[str] = Field(None, min_length=1, max_length=150)
+    description: Optional[str] = Field(None, min_length=1, max_length=5000)
+    location: Optional[str] = Field(None, min_length=1, max_length=150)
+    employment_type: Optional[str] = Field(None, max_length=50)
+    type: Optional[str] = Field(None, max_length=50)
     workMode: Optional[WorkMode] = None
-    stipend: Optional[str] = None
-    logo: Optional[str] = None
-    required_skills: Optional[List[RequiredSkill]] = None
-    preferred_skills: Optional[List[str]] = None
-    minimum_proficiency: Optional[int] = None
-    application_url: Optional[str] = None
-    deadline: Optional[str] = None
+    stipend: Optional[str] = Field(None, max_length=50)
+    logo: Optional[str] = Field(None, max_length=10)
+    required_skills: Optional[List[RequiredSkill]] = Field(None, max_length=50)
+    preferred_skills: Optional[List[str]] = Field(None, max_length=50)
+    minimum_proficiency: Optional[int] = Field(None, ge=1, le=5)
+    application_url: Optional[str] = Field(None, max_length=1000, pattern=_OPTIONAL_URL_PATTERN)
+    deadline: Optional[str] = Field(None, max_length=50)
     status: Optional[JobStatus] = None
 
 
@@ -493,22 +708,33 @@ class RoleBenchmarkResponse(BaseModel):
 
 # ===================== COURSE / CURRICULUM MODELS =====================
 
+# NOTE: shared - reachable from CourseResponse(**data) over real Firestore course documents,
+# so no extra="forbid" / min_length here; a generous max_length backstop only.
 class CourseSkillContribution(BaseModel):
-    skill: str
+    skill: str = Field(..., max_length=120)
     contribution: int = Field(default=20, ge=1, le=100, description="Proficiency contribution points")
 
 
 class CourseBase(BaseModel):
-    courseCode: str
-    courseName: str
-    semester: str
-    department: str
+    courseCode: str = Field(..., max_length=50)
+    courseName: str = Field(..., max_length=200)
+    semester: str = Field(..., max_length=20)
+    department: str = Field(..., max_length=150)
     skills: List[CourseSkillContribution] = Field(default_factory=list)
-    description: Optional[str] = ""
+    description: Optional[str] = Field(default="", max_length=2000)
 
 
 class CourseCreate(CourseBase):
-    pass
+    """Strict on top of CourseBase: extra="forbid" here only (CourseResponse also inherits
+    CourseBase and is built via CourseResponse(**firestore_doc) in matching.py)."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, str_max_length=5000)
+
+    courseCode: str = Field(..., min_length=1, max_length=50)
+    courseName: str = Field(..., min_length=1, max_length=200)
+    semester: str = Field(..., min_length=1, max_length=20)
+    department: str = Field(..., min_length=1, max_length=150)
+    skills: List[CourseSkillContribution] = Field(default_factory=list, max_length=100)
 
 
 class CourseResponse(CourseBase):
@@ -535,15 +761,15 @@ class LearningPathSkillItem(BaseModel):
     status: LearningPathSkillStatus = "not_started"
 
 
-class LearningPathCreate(BaseModel):
-    job_id: str
+class LearningPathCreate(StrictRequestModel):
+    job_id: str = Field(..., min_length=1, max_length=200)
 
 
-class LearningPathSkillUpdate(BaseModel):
+class LearningPathSkillUpdate(StrictRequestModel):
     status: LearningPathSkillStatus
 
 
-class LearningPathStatusUpdate(BaseModel):
+class LearningPathStatusUpdate(StrictRequestModel):
     status: LearningPathStatus
 
 
@@ -580,23 +806,31 @@ class EvidenceBase(BaseModel):
 
 
 class EvidenceCreate(EvidenceBase):
-    pass
+    """Strict on top of EvidenceBase: extra="forbid" here only (EvidenceResponse also inherits
+    EvidenceBase and is built via EvidenceResponse(**firestore_doc) throughout evidence.py/
+    faculty.py - a stray legacy field on an existing evidence document must not 500 on read)."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, str_max_length=5000)
+
+    skill_ids: List[str] = Field(default_factory=list, max_length=50)
+    project_url: Optional[str] = Field(default="", max_length=500, pattern=_OPTIONAL_URL_PATTERN)
+    source_url: Optional[str] = Field(default="", max_length=500, pattern=_OPTIONAL_URL_PATTERN)
 
 
-class EvidenceUpdate(BaseModel):
+class EvidenceUpdate(StrictRequestModel):
     title: Optional[str] = Field(None, min_length=2, max_length=150)
     description: Optional[str] = Field(None, max_length=2000)
     type: Optional[EvidenceType] = None
-    skill_ids: Optional[List[str]] = None
-    issuer: Optional[str] = None
-    issue_date: Optional[str] = None
-    credential_id: Optional[str] = None
-    project_url: Optional[str] = None
-    source_url: Optional[str] = None
-    file_path: Optional[str] = None
+    skill_ids: Optional[List[str]] = Field(None, max_length=50)
+    issuer: Optional[str] = Field(None, max_length=150)
+    issue_date: Optional[str] = Field(None, max_length=50)
+    credential_id: Optional[str] = Field(None, max_length=150)
+    project_url: Optional[str] = Field(None, max_length=500, pattern=_OPTIONAL_URL_PATTERN)
+    source_url: Optional[str] = Field(None, max_length=500, pattern=_OPTIONAL_URL_PATTERN)
+    file_path: Optional[str] = Field(None, max_length=500)
 
 
-class EvidenceReview(BaseModel):
+class EvidenceReview(StrictRequestModel):
     verification_status: VerificationStatus
     verification_notes: Optional[str] = Field(default="", max_length=1000)
 
@@ -620,14 +854,17 @@ MentorAssignmentStatus = Literal["active", "inactive"]
 
 
 class MentorAssignmentBase(BaseModel):
-    mentor_uid: str = Field(..., min_length=1, description="Firebase UID of the assigned mentor")
-    student_uid: str = Field(..., min_length=1, description="Firebase UID of the assigned student")
+    mentor_uid: str = Field(..., min_length=1, max_length=200, description="Firebase UID of the assigned mentor")
+    student_uid: str = Field(..., min_length=1, max_length=200, description="Firebase UID of the assigned student")
     institution_id: Optional[str] = Field(default=None, max_length=150)
     status: MentorAssignmentStatus = "active"
 
 
 class MentorAssignmentCreate(MentorAssignmentBase):
-    pass
+    """Strict on top of MentorAssignmentBase: extra="forbid" here only (MentorAssignmentResponse
+    also inherits this base and is built via MentorAssignmentResponse(**doc_data) in faculty.py)."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, str_max_length=5000)
 
 
 class MentorAssignmentResponse(MentorAssignmentBase):
@@ -644,7 +881,10 @@ class MentorFeedbackBase(BaseModel):
 
 
 class MentorFeedbackCreate(MentorFeedbackBase):
-    pass
+    """Strict on top of MentorFeedbackBase: extra="forbid" here only (MentorFeedbackResponse
+    also inherits this base and is built via MentorFeedbackResponse(**data) in faculty.py)."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, str_max_length=5000)
 
 
 class MentorFeedbackResponse(MentorFeedbackBase):
@@ -686,10 +926,10 @@ class AssignedMentorResponse(BaseModel):
     mentor: Optional[MentorInfo] = None
 
 
-class EvidenceReviewActionRequest(BaseModel):
+class EvidenceReviewActionRequest(StrictRequestModel):
     verification_status: VerificationStatus
     verification_notes: Optional[str] = Field(default="", max_length=1000)
-    student_uid: Optional[str] = Field(default=None, description="Optional student UID to resolve evidence subcollection")
+    student_uid: Optional[str] = Field(default=None, max_length=200, description="Optional student UID to resolve evidence subcollection")
 
 
 class PendingEvidenceItem(EvidenceResponse):
@@ -780,11 +1020,26 @@ class DataProvenance(BaseModel):
     is_test_data: bool = False
 
 
+class SkillRecommendationItem(BaseModel):
+    skill: str
+    reason: str
+    market_frequency_percentage: Optional[float] = None
+    priority: Literal["High", "Medium", "Low"] = "Medium"
+
+
+class SkillRecommendationsResponse(BaseModel):
+    target_role: Optional[str] = None
+    current_skills: List[str] = Field(default_factory=list)
+    recommendations: List[SkillRecommendationItem] = Field(default_factory=list)
+    explanation: str
+    provenance: DataProvenance = Field(default_factory=lambda: DataProvenance(source="skill_recommendation_engine"))
+
+
 # ===================== STEP 35: AI CAREER ASSISTANT =====================
 
-class AIChatRequest(BaseModel):
+class AIChatRequest(StrictRequestModel):
     message: str = Field(..., min_length=1, max_length=2000)
-    job_id: Optional[str] = None
+    job_id: Optional[str] = Field(None, max_length=200)
 
 
 class AIChatResponse(BaseModel):
@@ -812,10 +1067,21 @@ class QuizDetailResponse(BaseModel):
     provenance: DataProvenance = Field(default_factory=lambda: DataProvenance(source="assessment_question_bank"))
 
 
-class QuizSubmissionRequest(BaseModel):
-    skill_name: str
-    category: str = "Technical"
-    answers: Dict[str, int] = Field(..., description="Mapping of question ID to selected option index")
+class QuizSubmissionRequest(StrictRequestModel):
+    skill_name: str = Field(..., min_length=1, max_length=120)
+    category: str = Field(default="Technical", max_length=50)
+    answers: Dict[str, int] = Field(
+        ..., min_length=1, max_length=50, description="Mapping of question ID to selected option index"
+    )
+
+    @model_validator(mode="after")
+    def validate_answers_shape(self) -> "QuizSubmissionRequest":
+        for question_id, selected_option in self.answers.items():
+            if not (1 <= len(question_id) <= 100):
+                raise ValueError(f"Invalid question id length: {question_id!r}")
+            if not (0 <= selected_option <= 25):
+                raise ValueError(f"selectedOption out of range for question {question_id!r}: {selected_option}")
+        return self
 
 
 class QuizResultResponse(BaseModel):
@@ -850,14 +1116,14 @@ class AssessmentHistoryItem(BaseModel):
 
 JobApplicationStatus = Literal["applied", "under_review", "shortlisted", "rejected", "selected", "withdrawn"]
 
-class JobApplicationCreate(BaseModel):
-    job_id: str
-    notes: Optional[str] = ""
+class JobApplicationCreate(StrictRequestModel):
+    job_id: str = Field(..., min_length=1, max_length=200)
+    notes: Optional[str] = Field(default="", max_length=2000)
 
 
-class JobApplicationUpdateStatus(BaseModel):
+class JobApplicationUpdateStatus(StrictRequestModel):
     status: JobApplicationStatus
-    feedback: Optional[str] = ""
+    feedback: Optional[str] = Field(default="", max_length=2000)
 
 
 class JobApplicationResponse(BaseModel):
@@ -909,10 +1175,10 @@ class NotificationListResponse(BaseModel):
 
 # ===================== STEP 39: ADMIN & ROLE MANAGEMENT =====================
 
-class AdminRoleUpdateRequest(BaseModel):
+class AdminRoleUpdateRequest(StrictRequestModel):
     role: UserRole
-    department: Optional[str] = None
-    institution_id: Optional[str] = None
+    department: Optional[str] = Field(None, max_length=150)
+    institution_id: Optional[str] = Field(None, max_length=150)
 
 
 class AdminUserSummary(BaseModel):
@@ -963,12 +1229,14 @@ class MarketOverviewResponse(BaseModel):
     total_verified_hirings: int = 0
     unique_companies_count: int = 0
     unique_roles_count: int = 0
+    most_demanded_role: Optional[str] = None
     top_companies: List[Dict[str, Any]] = Field(default_factory=list)
     most_requested_skills: List[Dict[str, Any]] = Field(default_factory=list)
     employment_type_distribution: Dict[str, int] = Field(default_factory=dict)
     location_distribution: Dict[str, int] = Field(default_factory=dict)
     time_filter_applied: str = "last_3_months"
     location_filter_applied: Dict[str, Optional[str]] = Field(default_factory=dict)
+    data_sources: Optional[str] = None
     provenance: DataProvenance = Field(default_factory=lambda: DataProvenance(source="market_intelligence_engine"))
 
 
@@ -1047,8 +1315,8 @@ class StudentMarketSkillGapResponse(BaseModel):
     provenance: DataProvenance = Field(default_factory=lambda: DataProvenance(source="market_gap_engine"))
 
 
-class CompanyPreferenceRequest(BaseModel):
-    company: str
+class CompanyPreferenceRequest(StrictRequestModel):
+    company: str = Field(..., min_length=1, max_length=150)
     preference_type: Literal["target", "dream"]
     action: Literal["add", "remove"]
 

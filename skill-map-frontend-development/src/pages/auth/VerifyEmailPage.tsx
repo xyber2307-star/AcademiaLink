@@ -37,20 +37,20 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="text-center">
-      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><MailCheck className="h-8 w-8" /></span>
+      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600"><MailCheck className="h-8 w-8" /></span>
       <h1 className="mt-5 text-2xl font-bold tracking-tight text-slate-900">Verify your email</h1>
       <p className="mt-2 text-sm text-slate-500">We sent a 6-digit code to <span className="font-semibold text-slate-800">{user.email}</span>. Enter it below to activate your account.</p>
       <div className="mt-8 flex justify-center gap-2 sm:gap-3" onPaste={onPaste}>
         {code.map((d, i) => (
           <input key={i} ref={(el) => { refs.current[i] = el; }} inputMode="numeric" value={d} onChange={(e) => onChange(i, e.target.value)} onKeyDown={(e) => onKey(i, e)}
-            className="h-14 w-11 rounded-xl border border-slate-300 text-center text-xl font-bold text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100 sm:w-12" />
+            className="h-14 w-11 rounded-xl border border-slate-300 text-center text-xl font-bold text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-12" />
         ))}
       </div>
       {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
       <Button size="lg" className="mt-6 w-full" onClick={submit} loading={loading}>Verify & continue</Button>
       <p className="mt-4 text-sm text-slate-500">
         Didn't receive it?{" "}
-        {timer > 0 ? <span className="text-slate-400">Resend in {timer}s</span> : <button onClick={() => setTimer(45)} className="font-semibold text-indigo-600">Resend code</button>}
+        {timer > 0 ? <span className="text-slate-400">Resend in {timer}s</span> : <button onClick={() => setTimer(45)} className="font-semibold text-blue-600">Resend code</button>}
       </p>
       <p className="mt-6 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">Demo: any 6 digits will verify the account.</p>
     </div>

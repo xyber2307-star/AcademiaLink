@@ -1,0 +1,3 @@
+# Dependencies for scripts/extract_aicte_pdf.py ONLY - not required by the running app.
+# Install with: pip install -r scripts/requirements-import.txt
+pdfplumber==0.11.10

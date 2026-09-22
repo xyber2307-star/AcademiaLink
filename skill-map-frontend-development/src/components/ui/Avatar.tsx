@@ -6,6 +6,6 @@ export function Avatar({ src, name, size = "md", className }: { src?: string; na
   return src ? (
     <img src={src} alt={name} className={cn("rounded-full object-cover ring-2 ring-white", s, className)} />
   ) : (
-    <span className={cn("inline-flex items-center justify-center rounded-full bg-indigo-100 font-semibold text-indigo-700 ring-2 ring-white", s, className)}>{initials(name)}</span>
+    <span className={cn("inline-flex items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-700 ring-2 ring-white", s, className)}>{initials(name)}</span>
   );
 }

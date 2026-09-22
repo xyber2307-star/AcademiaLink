@@ -8,9 +8,9 @@ import {
   RotateCcw,
   Sparkles,
   ArrowRight,
-  Code2,
-  Layers,
-  Cpu,
+  Search,
+  Lock,
+  Flame,
 } from "lucide-react";
 import { Card, CardBody, CardHeader } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -19,12 +19,26 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { ProgressBar } from "../../components/ui/Progress";
 import { studentService } from "../../services/studentService";
 import { quizService, AssessmentHistoryItem } from "../../services/quizService";
+import { taxonomyService, SkillTaxonomyEntry, SkillTaxonomyCategoriesResponse } from "../../services/taxonomyService";
 
 interface Question {
   id: string;
   question: string;
   options: string[];
   difficulty: number;
+}
+
+function taxonomyTypeToSkillCategory(type: string): "Technical" | "Soft" | "Domain" | "Tools" {
+  switch (type) {
+    case "tool":
+      return "Tools";
+    case "soft":
+      return "Soft";
+    case "domain":
+      return "Domain";
+    default:
+      return "Technical";
+  }
 }
 
 interface AssessmentResult {
@@ -39,35 +53,17 @@ interface AssessmentResult {
   skill: any;
 }
 
-const AVAILABLE_SKILLS = [
-  {
-    id: "python",
-    name: "Python",
-    category: "Technical" as const,
-    icon: Code2,
-    description: "Core syntax, data structures, GIL, memory model, and generators",
-    questionsCount: 5,
-  },
-  {
-    id: "react",
-    name: "React",
-    category: "Technical" as const,
-    icon: Layers,
-    description: "Virtual DOM reconciliation, hooks, memoization, and lifecycle",
-    questionsCount: 5,
-  },
-  {
-    id: "general",
-    name: "Software Engineering",
-    category: "Technical" as const,
-    icon: Cpu,
-    description: "RESTful architecture, Git, databases, indexing, and containerization",
-    questionsCount: 5,
-  },
-];
-
 export default function SkillAssessmentPage() {
-  const [selectedSkillId, setSelectedSkillId] = useState<string>("python");
+  // Dynamic, searchable skill picker backed by the Firestore skill taxonomy - not a
+  // hard-coded list. New skills added by an admin appear here with no frontend redeploy.
+  const [pickerTab, setPickerTab] = useState<"popular" | "search">("popular");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [categories, setCategories] = useState<SkillTaxonomyCategoriesResponse>({ categories: [], subcategories_by_category: {} });
+  const [skillResults, setSkillResults] = useState<SkillTaxonomyEntry[]>([]);
+  const [loadingSkills, setLoadingSkills] = useState(false);
+
+  const [selectedSkill, setSelectedSkill] = useState<SkillTaxonomyEntry | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -77,8 +73,6 @@ export default function SkillAssessmentPage() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<AssessmentHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-
-  const selectedSkill = AVAILABLE_SKILLS.find((s) => s.id === selectedSkillId) || AVAILABLE_SKILLS[0];
 
   const loadHistory = async () => {
     try {
@@ -92,22 +86,79 @@ export default function SkillAssessmentPage() {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const c = await taxonomyService.getCategories();
+      setCategories(c);
+    } catch (e) {
+      console.warn("Could not load skill categories:", e);
+    }
+  };
+
+  const loadPopular = async () => {
+    setLoadingSkills(true);
+    try {
+      const skills = await taxonomyService.getPopular(12);
+      setSkillResults(skills);
+    } catch (e) {
+      console.warn("Could not load popular skills:", e);
+      setSkillResults([]);
+    } finally {
+      setLoadingSkills(false);
+    }
+  };
+
+  const runSearch = async () => {
+    setLoadingSkills(true);
+    try {
+      const skills = await taxonomyService.search({
+        q: searchQuery || undefined,
+        category: categoryFilter || undefined,
+        limit: 50,
+      });
+      setSkillResults(skills);
+    } catch (e) {
+      console.warn("Skill search failed:", e);
+      setSkillResults([]);
+    } finally {
+      setLoadingSkills(false);
+    }
+  };
+
   useEffect(() => {
     loadHistory();
+    loadCategories();
+    loadPopular();
   }, []);
 
   useEffect(() => {
-    loadQuestions(selectedSkillId);
-  }, [selectedSkillId]);
+    if (pickerTab === "search") {
+      const t = setTimeout(runSearch, 300);
+      return () => clearTimeout(t);
+    } else {
+      loadPopular();
+    }
+  }, [pickerTab, searchQuery, categoryFilter]);
 
-  const loadQuestions = async (skillId: string) => {
+  const handleSelectSkill = (skill: SkillTaxonomyEntry) => {
+    setSelectedSkill(skill);
+    if (skill.assessmentAvailable) {
+      loadQuestions(skill.name);
+    } else {
+      setQuestions([]);
+      setResult(null);
+      setError(null);
+    }
+  };
+
+  const loadQuestions = async (skillName: string) => {
     try {
       setLoadingQuestions(true);
       setError(null);
       setResult(null);
       setAnswers({});
       setCurrentIdx(0);
-      const data = await studentService.getAssessmentQuestions(skillId);
+      const data = await studentService.getAssessmentQuestions(skillName);
       setQuestions(data || []);
     } catch (err: any) {
       console.error("Failed to load questions", err);
@@ -125,14 +176,16 @@ export default function SkillAssessmentPage() {
   };
 
   const handleSubmit = async () => {
-    if (questions.length === 0) return;
+    if (!selectedSkill || questions.length === 0) return;
     try {
       setSubmitting(true);
       setError(null);
 
       const submissionPayload = {
         skillName: selectedSkill.name,
-        category: selectedSkill.category,
+        // The backend's SkillCategory is a narrow axis (Technical/Soft/Domain/Tools) used on a
+        // student's individual skill record - distinct from the taxonomy's rich discipline category.
+        category: taxonomyTypeToSkillCategory(selectedSkill.type),
         answers: Object.entries(answers).map(([questionId, selectedOption]) => ({
           questionId,
           selectedOption,
@@ -168,53 +221,114 @@ export default function SkillAssessmentPage() {
         }
       />
 
-      {/* Skill Track Picker */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {AVAILABLE_SKILLS.map((track) => {
-          const isSelected = track.id === selectedSkillId;
-          const Icon = track.icon;
-          return (
+      {/* Skill Picker - dynamic, searchable, backed by the Firestore skill taxonomy */}
+      <Card>
+        <CardBody className="space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
             <button
-              key={track.id}
-              onClick={() => {
-                if (selectedSkillId !== track.id) {
-                  setSelectedSkillId(track.id);
-                }
-              }}
-              className={`flex flex-col text-left p-4 rounded-2xl border transition ${
-                isSelected
-                  ? "border-indigo-600 bg-indigo-50/50 shadow-sm ring-2 ring-indigo-500/20"
-                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+              onClick={() => setPickerTab("popular")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium ${
+                pickerTab === "popular" ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"
               }`}
             >
-              <div className="flex items-center justify-between w-full">
-                <span
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                    isSelected ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                </span>
-                {isSelected && (
-                  <Badge tone="indigo">
-                    Active Track
-                  </Badge>
-                )}
-              </div>
-              <p className="mt-3 font-semibold text-slate-900">{track.name}</p>
-              <p className="mt-1 text-xs text-slate-500 line-clamp-2">{track.description}</p>
-              <div className="mt-3 flex items-center gap-2 text-xs font-medium text-slate-500">
-                <span>{track.questionsCount} Questions</span>
-                <span>•</span>
-                <span>Deterministic Scoring</span>
-              </div>
+              <Flame className="h-3.5 w-3.5" /> Popular Skills
             </button>
-          );
-        })}
-      </div>
+            <button
+              onClick={() => setPickerTab("search")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium ${
+                pickerTab === "search" ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"
+              }`}
+            >
+              <Search className="h-3.5 w-3.5" /> Search All Skills
+            </button>
+          </div>
+
+          {pickerTab === "search" && (
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search e.g. Python, Cybersecurity, AutoCAD, Financial Analysis..."
+                  className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-3 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:outline-none"
+              >
+                <option value="">All Categories ({categories.categories.length})</option>
+                {categories.categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {loadingSkills ? (
+            <div className="py-8 text-center text-sm text-slate-500">Loading skills...</div>
+          ) : skillResults.length === 0 ? (
+            <div className="py-8 text-center text-sm text-slate-500">No skills found matching your search.</div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-3">
+              {skillResults.map((skill) => {
+                const isSelected = selectedSkill?.id === skill.id;
+                return (
+                  <button
+                    key={skill.id}
+                    onClick={() => handleSelectSkill(skill)}
+                    className={`flex flex-col text-left p-4 rounded-2xl border transition ${
+                      isSelected
+                        ? "border-blue-600 bg-blue-50/50 shadow-sm ring-2 ring-blue-500/20"
+                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                        {skill.subcategory || skill.category}
+                      </span>
+                      {skill.assessmentAvailable ? (
+                        <Badge tone="emerald" className="text-[10px]">Assessment</Badge>
+                      ) : (
+                        <Badge tone="slate" className="text-[10px]"><Lock className="h-2.5 w-2.5" /> Self-declare</Badge>
+                      )}
+                    </div>
+                    <p className="mt-2 font-semibold text-slate-900">{skill.name}</p>
+                    <p className="mt-1 text-xs text-slate-500">{skill.category}</p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
+      {!selectedSkill && (
+        <div className="py-8 text-center text-sm text-slate-500">
+          Select a skill above to see assessment questions, or self-declare it with evidence from your Skill Profile.
+        </div>
+      )}
+
+      {selectedSkill && !selectedSkill.assessmentAvailable && (
+        <Card className="border-amber-200 bg-amber-50/60">
+          <CardBody className="text-center py-8">
+            <Lock className="mx-auto h-8 w-8 text-amber-500" />
+            <h3 className="mt-2 font-semibold text-amber-900">No assessment available yet for {selectedSkill.name}</h3>
+            <p className="mt-1 text-sm text-amber-800">
+              We don't have a fact-checked quiz for this skill yet - we never fabricate an assessment. You can still
+              self-declare it with supporting evidence (projects, certifications) from your Skill Profile.
+            </p>
+            <Link to="/student/skills">
+              <Button variant="outline" size="sm" className="mt-4">Go to Skill Profile</Button>
+            </Link>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Result Card if submitted */}
-      {result ? (
+      {selectedSkill?.assessmentAvailable && (result ? (
         <Card className="overflow-hidden border-emerald-200 bg-gradient-to-b from-emerald-50/40 to-white">
           <CardBody className="p-8 text-center sm:p-10">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 ring-8 ring-emerald-50">
@@ -246,7 +360,7 @@ export default function SkillAssessmentPage() {
               </div>
               <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
                 <p className="text-[11px] font-medium text-slate-500">Proficiency</p>
-                <p className="text-xl font-bold text-indigo-600">Level {result.proficiency}</p>
+                <p className="text-xl font-bold text-blue-600">Level {result.proficiency}</p>
               </div>
             </div>
 
@@ -254,7 +368,7 @@ export default function SkillAssessmentPage() {
               <Button
                 variant="outline"
                 icon={<RotateCcw className="h-4 w-4" />}
-                onClick={() => loadQuestions(selectedSkillId)}
+                onClick={() => selectedSkill && loadQuestions(selectedSkill.name)}
               >
                 Retake Assessment
               </Button>
@@ -270,7 +384,7 @@ export default function SkillAssessmentPage() {
         /* Assessment Runner */
         <Card>
           <CardHeader
-            title={`${selectedSkill.name} Competency Assessment`}
+            title={`${selectedSkill?.name} Competency Assessment`}
             subtitle={`Question ${currentIdx + 1} of ${questions.length} • Difficulty: Level ${currentQ?.difficulty || 1}`}
             action={
               <Badge tone="slate">
@@ -279,7 +393,7 @@ export default function SkillAssessmentPage() {
             }
           />
           <div className="px-6">
-            <ProgressBar value={progressPercent} tone="indigo" />
+            <ProgressBar value={progressPercent} />
           </div>
 
           <CardBody className="space-y-6 pt-6">
@@ -291,12 +405,12 @@ export default function SkillAssessmentPage() {
 
             {loadingQuestions ? (
               <div className="py-12 text-center text-sm text-slate-500">
-                Loading questions for {selectedSkill.name}...
+                Loading questions for {selectedSkill?.name}...
               </div>
             ) : currentQ ? (
               <div className="space-y-5">
                 <div className="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-200/60">
-                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
                     Question {currentIdx + 1}
                   </span>
                   <h3 className="mt-1 text-base font-semibold text-slate-900 leading-relaxed">
@@ -313,7 +427,7 @@ export default function SkillAssessmentPage() {
                         onClick={() => handleSelectOption(currentQ.id, idx)}
                         className={`flex w-full items-center justify-between rounded-xl border p-4 text-left text-sm transition ${
                           isSelected
-                            ? "border-indigo-600 bg-indigo-50/70 font-medium text-indigo-950 ring-2 ring-indigo-500/20"
+                            ? "border-blue-600 bg-blue-50/70 font-medium text-blue-950 ring-2 ring-blue-500/20"
                             : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                         }`}
                       >
@@ -321,7 +435,7 @@ export default function SkillAssessmentPage() {
                           <span
                             className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                               isSelected
-                                ? "bg-indigo-600 text-white"
+                                ? "bg-blue-600 text-white"
                                 : "bg-slate-100 text-slate-500"
                             }`}
                           >
@@ -329,7 +443,7 @@ export default function SkillAssessmentPage() {
                           </span>
                           <span>{option}</span>
                         </div>
-                        {isSelected && <CheckCircle2 className="h-5 w-5 text-indigo-600 shrink-0" />}
+                        {isSelected && <CheckCircle2 className="h-5 w-5 text-blue-600 shrink-0" />}
                       </button>
                     );
                   })}
@@ -377,7 +491,7 @@ export default function SkillAssessmentPage() {
             )}
           </CardBody>
         </Card>
-      )}
+      ))}
 
       {/* Assessment History Section */}
       <Card>
@@ -409,7 +523,7 @@ export default function SkillAssessmentPage() {
                     <tr key={h.assessment_id} className="hover:bg-slate-50/50">
                       <td className="px-4 py-3 font-semibold text-slate-900">{h.skill_name}</td>
                       <td className="px-4 py-3">{h.category}</td>
-                      <td className="px-4 py-3 font-bold text-indigo-600">{h.score_percentage}%</td>
+                      <td className="px-4 py-3 font-bold text-blue-600">{h.score_percentage}%</td>
                       <td className="px-4 py-3">
                         <span className="px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           Level {h.assessed_proficiency} / 5

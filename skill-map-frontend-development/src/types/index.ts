@@ -94,6 +94,13 @@ export interface StudentProfile {
   phone: string;
   avatar: string;
   institution: string;
+  institution_id?: string;
+  institutionCode?: string;
+  institutionState?: string;
+  institutionDistrict?: string;
+  institutionVerificationStatus?: "VERIFIED" | "NOT_VERIFIED" | "SOURCE_UNAVAILABLE" | null;
+  institutionVerificationSource?: string | null;
+  institutionLastVerifiedAt?: string | null;
   degree: string;
   branch: string;
   year: string;

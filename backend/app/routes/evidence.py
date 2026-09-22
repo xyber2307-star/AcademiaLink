@@ -12,10 +12,10 @@ from app.firebase import get_db
 from app.models import (
     EvidenceCreate,
     EvidenceResponse,
-    EvidenceReview,
     EvidenceUpdate,
     UserProfileResponse,
 )
+from app.rate_limit import check_user_rate_limit
 
 logger = logging.getLogger("academialink.evidence")
 
@@ -308,6 +308,7 @@ async def upload_evidence_file(
     3. Restricts file size to MAX_FILE_SIZE_BYTES (5 MB).
     4. Stores file in users/{uid}/ directory with sanitized filename.
     """
+    await check_user_rate_limit(current_user.uid, "evidence_upload")
     original_filename = file.filename or "evidence_file"
     _, ext = os.path.splitext(original_filename)
     ext_lower = ext.lower()
@@ -389,58 +390,11 @@ async def get_my_evidence_file(
     return FileResponse(file_full_path, filename=safe_filename)
 
 
-@router.post("/{user_id}/{evidence_id}/review", response_model=EvidenceResponse, summary="Reviewer endpoint for faculty/mentor")
-async def review_student_evidence(
-    user_id: str,
-    evidence_id: str,
-    review_in: EvidenceReview,
-    current_user: UserProfileResponse = Depends(get_current_user),
-):
-    """
-    Review student evidence (Faculty / Mentor / Admin only).
-    Students calling this will be rejected with HTTP 403 Forbidden.
-    """
-    if current_user.role not in ["faculty", "mentor", "admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only faculty, mentors, or administrators are authorized to review student evidence",
-        )
-
-    db = get_db()
-    doc_ref = (
-        db.collection("users")
-        .document(user_id.strip())
-        .collection("evidence")
-        .document(evidence_id.strip())
-    )
-    doc = doc_ref.get()
-    if not doc.exists:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Evidence '{evidence_id}' not found for user '{user_id}'",
-        )
-
-    data = doc.to_dict() or {}
-    now_iso = datetime.now(timezone.utc).isoformat()
-    review_updates = {
-        "verification_status": review_in.verification_status,
-        "verification_notes": review_in.verification_notes or "",
-        "reviewer_id": current_user.uid,
-        "reviewedAt": now_iso,
-        "updatedAt": now_iso,
-    }
-
-    doc_ref.update(review_updates)
-    data.update(review_updates)
-    data["evidence_id"] = evidence_id
-    data["id"] = evidence_id
-    data["user_id"] = user_id
-
-    logger.info(
-        "Evidence %s for user %s reviewed by %s (Status: %s)",
-        evidence_id,
-        user_id,
-        current_user.uid,
-        review_in.verification_status,
-    )
-    return EvidenceResponse(**data)
+# NOTE: Evidence review is intentionally NOT exposed here. Reviewing evidence requires
+# verifying an active mentor-student assignment (institution/cohort scoping), which is
+# enforced by the dedicated endpoint: PATCH /api/faculty/evidence/{evidence_id}/review
+# (see app/routes/faculty.py::review_evidence). A prior unscoped endpoint here allowed
+# ANY faculty/mentor/admin account to approve or reject ANY student's evidence regardless
+# of assignment, bypassing institution/cohort authorization - it has been removed as a
+# security fix. Do not re-add evidence review logic in this module without reusing
+# faculty.verify_mentor_access() to enforce assignment scoping.

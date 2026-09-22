@@ -4,13 +4,22 @@ import { auth } from "./firebase";
  * Central API client for AcademiaLINK.
  * Communicates with the FastAPI backend with Firebase ID Bearer token.
  */
-export const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+// Falls back to the deployed production backend (not localhost) so the app works out of the
+// box even if a hosting platform's VITE_API_URL environment variable isn't actually reaching
+// the build - only override via VITE_API_URL for local development against a different backend.
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? "https://academialink-1.onrender.com/api";
 
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
   try {
+    // On a hard page reload, Firebase restores the persisted session asynchronously.
+    // Without waiting here, the very first request(s) after reload fire while
+    // auth.currentUser is still null, get sent with no Authorization header, and are
+    // wrongly rejected by the backend with 401 - even though the user IS logged in.
+    // authStateReady() resolves once that initial restoration has completed.
+    await auth.authStateReady();
     const user = auth.currentUser;
     if (user) {
       const token = await user.getIdToken();

@@ -4,6 +4,7 @@
 !.env.example
 *.json
 !seed_demo_data.json
+!app/data/institutions_aicte.json
 *.pem
 *.key
 *.cert

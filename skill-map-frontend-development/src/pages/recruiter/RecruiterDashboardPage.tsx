@@ -236,7 +236,7 @@ export default function RecruiterDashboardPage() {
           label="Total Postings"
           value={jobs.length}
           icon={<Briefcase className="h-5 w-5" />}
-          accent="indigo"
+          accent="blue"
           hint="All job listings created"
         />
         <StatCard
@@ -278,7 +278,7 @@ export default function RecruiterDashboardPage() {
             className={cn(
               "rounded-xl px-4 py-2 text-xs font-semibold transition-all",
               statusFilter === tab.id
-                ? "bg-indigo-600 text-white shadow-sm"
+                ? "bg-blue-600 text-white shadow-sm"
                 : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
             )}
           >
@@ -291,7 +291,7 @@ export default function RecruiterDashboardPage() {
       {filteredJobs.length === 0 ? (
         <Card>
           <CardBody className="py-16 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-8 ring-indigo-50/50">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-8 ring-blue-50/50">
               <Briefcase className="h-7 w-7" />
             </div>
             <h3 className="mt-4 text-base font-bold text-slate-900">
@@ -332,7 +332,7 @@ export default function RecruiterDashboardPage() {
                       <Badge tone={statusTone} className="capitalize">
                         {status}
                       </Badge>
-                      <span className="text-xs font-semibold text-indigo-600">
+                      <span className="text-xs font-semibold text-blue-600">
                         {job.company}
                       </span>
                     </div>
@@ -449,7 +449,7 @@ export default function RecruiterDashboardPage() {
                     placeholder="e.g. Backend Platform Engineer Intern"
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
                 <div>
@@ -462,7 +462,7 @@ export default function RecruiterDashboardPage() {
                     placeholder="e.g. CloudScale Technologies"
                     value={formCompany}
                     onChange={(e) => setFormCompany(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
               </div>
@@ -478,7 +478,7 @@ export default function RecruiterDashboardPage() {
                     placeholder="e.g. Bengaluru, India (Hybrid)"
                     value={formLocation}
                     onChange={(e) => setFormLocation(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
                 <div>
@@ -488,7 +488,7 @@ export default function RecruiterDashboardPage() {
                   <select
                     value={formWorkMode}
                     onChange={(e) => setFormWorkMode(e.target.value as any)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   >
                     <option value="Hybrid">Hybrid</option>
                     <option value="Remote">Remote</option>
@@ -506,7 +506,7 @@ export default function RecruiterDashboardPage() {
                   <select
                     value={formEmpType}
                     onChange={(e) => setFormEmpType(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   >
                     <option value="Internship">Internship</option>
                     <option value="Full-time">Full-time</option>
@@ -522,7 +522,7 @@ export default function RecruiterDashboardPage() {
                     placeholder="e.g. ₹45,000/mo"
                     value={formStipend}
                     onChange={(e) => setFormStipend(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
                 <div>
@@ -532,7 +532,7 @@ export default function RecruiterDashboardPage() {
                   <select
                     value={formStatus}
                     onChange={(e) => setFormStatus(e.target.value as any)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   >
                     <option value="published">Published (Active)</option>
                     <option value="draft">Draft (Private)</option>
@@ -552,7 +552,7 @@ export default function RecruiterDashboardPage() {
                   placeholder="Describe key responsibilities, team environment, and expectations..."
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 />
               </div>
 
@@ -586,7 +586,7 @@ export default function RecruiterDashboardPage() {
                         placeholder="Skill Name (e.g. Python)"
                         value={skill.name}
                         onChange={(e) => handleSkillChange(idx, "name", e.target.value)}
-                        className="flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs focus:border-indigo-500 focus:outline-none"
+                        className="flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
                       />
                       <div className="flex items-center gap-1">
                         <span className="text-[10px] text-slate-400">Req:</span>
@@ -603,7 +603,7 @@ export default function RecruiterDashboardPage() {
                               Number(e.target.value)
                             )
                           }
-                          className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-center focus:border-indigo-500 focus:outline-none"
+                          className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-center focus:border-blue-500 focus:outline-none"
                         />
                       </div>
                       <div className="flex items-center gap-1">
@@ -617,7 +617,7 @@ export default function RecruiterDashboardPage() {
                           onChange={(e) =>
                             handleSkillChange(idx, "weight", Number(e.target.value))
                           }
-                          className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-center focus:border-indigo-500 focus:outline-none"
+                          className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-center focus:border-blue-500 focus:outline-none"
                         />
                       </div>
                       {skillsList.length > 1 && (

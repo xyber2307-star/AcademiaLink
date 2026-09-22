@@ -19,6 +19,7 @@ from app.models import (
     StudentMarketSkillGapResponse,
     UserProfileResponse,
 )
+from app.rate_limit import require_public_rate_limit
 from app.services.market_data_provider import market_data_manager
 
 logger = logging.getLogger("academialink.market_routes")
@@ -26,17 +27,17 @@ logger = logging.getLogger("academialink.market_routes")
 router = APIRouter(prefix="/market", tags=["Job Market Intelligence"])
 
 
-@router.get("/overview", response_model=MarketOverviewResponse, summary="Get high-level real market intelligence overview")
+@router.get("/overview", response_model=MarketOverviewResponse, summary="Get high-level real market intelligence overview", dependencies=[Depends(require_public_rate_limit)])
 async def get_market_overview(
-    country: Optional[str] = Query(None, description="Filter by country"),
-    state: Optional[str] = Query(None, description="Filter by state or province"),
-    city: Optional[str] = Query(None, description="Filter by city"),
-    company: Optional[str] = Query(None, description="Filter by company"),
-    role: Optional[str] = Query(None, description="Filter by job role/title"),
-    category: Optional[str] = Query(None, description="Filter by skill category"),
+    country: Optional[str] = Query(None, max_length=150, description="Filter by country"),
+    state: Optional[str] = Query(None, max_length=150, description="Filter by state or province"),
+    city: Optional[str] = Query(None, max_length=150, description="Filter by city"),
+    company: Optional[str] = Query(None, max_length=150, description="Filter by company"),
+    role: Optional[str] = Query(None, max_length=150, description="Filter by job role/title"),
+    category: Optional[str] = Query(None, max_length=150, description="Filter by skill category"),
     time_range: Optional[MarketTimeRange] = Query("last_3_months", description="Time filter: current, last_1_month, last_3_months, custom, all"),
-    start_date: Optional[str] = Query(None, description="Custom start date (ISO string)"),
-    end_date: Optional[str] = Query(None, description="Custom end date (ISO string)"),
+    start_date: Optional[str] = Query(None, max_length=150, description="Custom start date (ISO string)"),
+    end_date: Optional[str] = Query(None, max_length=150, description="Custom end date (ISO string)"),
 ):
     """
     Calculates aggregated real-world market intelligence.
@@ -56,19 +57,33 @@ async def get_market_overview(
     )
 
 
-@router.get("/locations", response_model=MarketLocationOptionsResponse, summary="Get dynamic locations available in market data")
+@router.get("/live-count", summary="Get the live headline vacancy count reported directly by the connected job-data provider", dependencies=[Depends(require_public_rate_limit)])
+async def get_live_vacancy_count(
+    location: Optional[str] = Query(None, max_length=150, description="City/region to search, e.g. Hyderabad, Bengaluru. Omit for country-wide."),
+    keyword: Optional[str] = Query(None, max_length=150, description="Search keyword, e.g. 'software engineer'"),
+    country: Optional[str] = Query(None, max_length=150, description="Two-letter provider country code, defaults to the configured country"),
+):
+    """
+    Returns the real total-match count reported by the connected job-data provider (Adzuna) for
+    the given location/keyword - not a locally-fabricated estimate. Use for a headline
+    "X accessible vacancies found through connected job-data sources" style figure.
+    """
+    return market_data_manager.get_live_vacancy_count(location=location, keyword=keyword, country=country)
+
+
+@router.get("/locations", response_model=MarketLocationOptionsResponse, summary="Get dynamic locations available in market data", dependencies=[Depends(require_public_rate_limit)])
 async def get_market_locations():
     """Returns dynamic countries, states, and cities present in the actual dataset (never hard-coded)."""
     return market_data_manager.get_distinct_locations()
 
 
-@router.get("/companies", response_model=List[CompanyMarketSummary], summary="List companies with observed postings and target/dream company status")
+@router.get("/companies", response_model=List[CompanyMarketSummary], summary="List companies with observed postings and target/dream company status", dependencies=[Depends(require_public_rate_limit)])
 async def get_market_companies(
-    country: Optional[str] = Query(None, description="Filter by country"),
-    state: Optional[str] = Query(None, description="Filter by state"),
-    city: Optional[str] = Query(None, description="Filter by city"),
+    country: Optional[str] = Query(None, max_length=150, description="Filter by country"),
+    state: Optional[str] = Query(None, max_length=150, description="Filter by state"),
+    city: Optional[str] = Query(None, max_length=150, description="Filter by city"),
     time_range: Optional[MarketTimeRange] = Query("last_3_months", description="Time period filter"),
-    search: Optional[str] = Query(None, description="Search company name"),
+    search: Optional[str] = Query(None, max_length=150, description="Search company name"),
 ):
     """
     Lists companies based on real observed postings.
@@ -83,12 +98,12 @@ async def get_market_companies(
     )
 
 
-@router.get("/company/{company}", response_model=CompanyMarketDetailResponse, summary="Get deep company market analytics")
+@router.get("/company/{company}", response_model=CompanyMarketDetailResponse, summary="Get deep company market analytics", dependencies=[Depends(require_public_rate_limit)])
 async def get_company_detail(
     company: str,
-    country: Optional[str] = Query(None, description="Filter by country"),
-    state: Optional[str] = Query(None, description="Filter by state"),
-    city: Optional[str] = Query(None, description="Filter by city"),
+    country: Optional[str] = Query(None, max_length=150, description="Filter by country"),
+    state: Optional[str] = Query(None, max_length=150, description="Filter by state"),
+    city: Optional[str] = Query(None, max_length=150, description="Filter by city"),
     time_range: Optional[MarketTimeRange] = Query("last_3_months", description="Time period filter"),
 ):
     """
@@ -106,17 +121,18 @@ async def get_company_detail(
     )
 
 
-@router.get("/jobs", response_model=List[MarketJobRecord], summary="List filtered raw market job postings")
+@router.get("/jobs", response_model=List[MarketJobRecord], summary="List filtered raw market job postings", dependencies=[Depends(require_public_rate_limit)])
 async def get_market_jobs(
-    country: Optional[str] = Query(None, description="Filter by country"),
-    state: Optional[str] = Query(None, description="Filter by state"),
-    city: Optional[str] = Query(None, description="Filter by city"),
-    company: Optional[str] = Query(None, description="Filter by company"),
-    role: Optional[str] = Query(None, description="Filter by role"),
-    category: Optional[str] = Query(None, description="Filter by category"),
+    country: Optional[str] = Query(None, max_length=150, description="Filter by country"),
+    state: Optional[str] = Query(None, max_length=150, description="Filter by state"),
+    city: Optional[str] = Query(None, max_length=150, description="Filter by city"),
+    company: Optional[str] = Query(None, max_length=150, description="Filter by company"),
+    role: Optional[str] = Query(None, max_length=150, description="Filter by role"),
+    category: Optional[str] = Query(None, max_length=150, description="Filter by category"),
+    skill: Optional[str] = Query(None, max_length=150, description="Filter by exact skill name"),
     time_range: Optional[MarketTimeRange] = Query("last_3_months", description="Time period filter"),
-    start_date: Optional[str] = Query(None, description="Custom start date"),
-    end_date: Optional[str] = Query(None, description="Custom end date"),
+    start_date: Optional[str] = Query(None, max_length=150, description="Custom start date"),
+    end_date: Optional[str] = Query(None, max_length=150, description="Custom end date"),
     limit: int = Query(50, ge=1, le=200, description="Max jobs to return"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
 ):
@@ -133,6 +149,7 @@ async def get_market_jobs(
         company=company,
         role=role,
         category=category,
+        skill=skill,
         time_range=time_range,
         start_date=start_date,
         end_date=end_date,
@@ -140,14 +157,44 @@ async def get_market_jobs(
     return filtered[offset : offset + limit]
 
 
-@router.get("/skills", response_model=SkillDemandResponse, summary="Analyze market skill demand percentages and frequencies")
+@router.get("/jobs/count", summary="Get total count of filtered market job postings (for pagination)", dependencies=[Depends(require_public_rate_limit)])
+async def get_market_jobs_count(
+    country: Optional[str] = Query(None, max_length=150, description="Filter by country"),
+    state: Optional[str] = Query(None, max_length=150, description="Filter by state"),
+    city: Optional[str] = Query(None, max_length=150, description="Filter by city"),
+    company: Optional[str] = Query(None, max_length=150, description="Filter by company"),
+    role: Optional[str] = Query(None, max_length=150, description="Filter by role"),
+    category: Optional[str] = Query(None, max_length=150, description="Filter by category"),
+    skill: Optional[str] = Query(None, max_length=150, description="Filter by exact skill name"),
+    time_range: Optional[MarketTimeRange] = Query("last_3_months", description="Time period filter"),
+):
+    """Returns the total number of live market postings matching the given filters, for pagination."""
+    all_jobs, configured, msg = market_data_manager.get_all_jobs()
+    if not configured:
+        return {"total": 0, "configured": False, "message": msg}
+
+    filtered = market_data_manager.filter_jobs(
+        all_jobs,
+        country=country,
+        state=state,
+        city=city,
+        company=company,
+        role=role,
+        category=category,
+        skill=skill,
+        time_range=time_range,
+    )
+    return {"total": len(filtered), "configured": True, "message": msg}
+
+
+@router.get("/skills", response_model=SkillDemandResponse, summary="Analyze market skill demand percentages and frequencies", dependencies=[Depends(require_public_rate_limit)])
 async def get_skill_demand(
-    country: Optional[str] = Query(None, description="Filter by country"),
-    state: Optional[str] = Query(None, description="Filter by state"),
-    city: Optional[str] = Query(None, description="Filter by city"),
-    company: Optional[str] = Query(None, description="Filter by company"),
-    role: Optional[str] = Query(None, description="Filter by role"),
-    category: Optional[str] = Query(None, description="Filter by category"),
+    country: Optional[str] = Query(None, max_length=150, description="Filter by country"),
+    state: Optional[str] = Query(None, max_length=150, description="Filter by state"),
+    city: Optional[str] = Query(None, max_length=150, description="Filter by city"),
+    company: Optional[str] = Query(None, max_length=150, description="Filter by company"),
+    role: Optional[str] = Query(None, max_length=150, description="Filter by role"),
+    category: Optional[str] = Query(None, max_length=150, description="Filter by category"),
     time_range: Optional[MarketTimeRange] = Query("last_3_months", description="Time period filter"),
 ):
     """
@@ -165,12 +212,12 @@ async def get_skill_demand(
     )
 
 
-@router.get("/trends", response_model=MarketTrendsResponse, summary="Calculate 3-month market trends")
+@router.get("/trends", response_model=MarketTrendsResponse, summary="Calculate 3-month market trends", dependencies=[Depends(require_public_rate_limit)])
 async def get_market_trends(
-    country: Optional[str] = Query(None, description="Filter by country"),
-    state: Optional[str] = Query(None, description="Filter by state"),
-    city: Optional[str] = Query(None, description="Filter by city"),
-    company: Optional[str] = Query(None, description="Filter by company"),
+    country: Optional[str] = Query(None, max_length=150, description="Filter by country"),
+    state: Optional[str] = Query(None, max_length=150, description="Filter by state"),
+    city: Optional[str] = Query(None, max_length=150, description="Filter by city"),
+    company: Optional[str] = Query(None, max_length=150, description="Filter by company"),
 ):
     """
     Calculates previous three months trend across observed postings, companies, and skills.
@@ -187,11 +234,11 @@ async def get_market_trends(
 
 @router.get("/skill-gap", response_model=StudentMarketSkillGapResponse, summary="Connect student skills to real market demand")
 async def get_student_market_skill_gap(
-    company: Optional[str] = Query(None, description="Target company to analyze gap against"),
-    role: Optional[str] = Query(None, description="Target role to analyze gap against"),
-    country: Optional[str] = Query(None, description="Filter market requirements by country"),
-    state: Optional[str] = Query(None, description="Filter market requirements by state"),
-    city: Optional[str] = Query(None, description="Filter market requirements by city"),
+    company: Optional[str] = Query(None, max_length=150, description="Target company to analyze gap against"),
+    role: Optional[str] = Query(None, max_length=150, description="Target role to analyze gap against"),
+    country: Optional[str] = Query(None, max_length=150, description="Filter market requirements by country"),
+    state: Optional[str] = Query(None, max_length=150, description="Filter market requirements by state"),
+    city: Optional[str] = Query(None, max_length=150, description="Filter market requirements by city"),
     current_user: UserProfileResponse = Depends(get_current_user),
 ):
     """

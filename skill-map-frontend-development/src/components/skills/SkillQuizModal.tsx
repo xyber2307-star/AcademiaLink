@@ -70,12 +70,12 @@ export const SkillQuizModal: React.FC<SkillQuizModalProps> = ({
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white flex items-center justify-between">
+        <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Award className="w-5 h-5 text-indigo-200" />
+            <Award className="w-5 h-5 text-blue-200" />
             <div>
               <h2 className="text-lg font-bold">Skill Quiz: {skillName}</h2>
-              <p className="text-xs text-indigo-200">Deterministic Proficiency Evaluation (1–5 Scale)</p>
+              <p className="text-xs text-blue-200">Deterministic Proficiency Evaluation (1–5 Scale)</p>
             </div>
           </div>
           <button
@@ -90,7 +90,7 @@ export const SkillQuizModal: React.FC<SkillQuizModalProps> = ({
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
           {loading && (
             <div className="py-16 text-center space-y-3">
-              <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
               <p className="text-sm text-gray-500 font-medium">Loading question bank...</p>
             </div>
           )}
@@ -119,7 +119,7 @@ export const SkillQuizModal: React.FC<SkillQuizModalProps> = ({
               <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                   <span className="text-xs text-gray-500 block mb-1">Assessed Proficiency</span>
-                  <span className="text-2xl font-bold text-indigo-600">
+                  <span className="text-2xl font-bold text-blue-600">
                     Level {result.assessed_proficiency} / 5
                   </span>
                 </div>
@@ -146,7 +146,7 @@ export const SkillQuizModal: React.FC<SkillQuizModalProps> = ({
 
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition shadow-sm"
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm transition shadow-sm"
               >
                 Close & Update Profile
               </button>
@@ -164,7 +164,7 @@ export const SkillQuizModal: React.FC<SkillQuizModalProps> = ({
                 </div>
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-indigo-600 transition-all duration-300"
+                    className="h-full bg-blue-600 transition-all duration-300"
                     style={{ width: `${(answeredCount / totalQuestions) * 100}%` }}
                   />
                 </div>
@@ -187,7 +187,7 @@ export const SkillQuizModal: React.FC<SkillQuizModalProps> = ({
                             onClick={() => handleSelectOption(q.id, optIdx)}
                             className={`flex items-center gap-3 p-3 rounded-xl border text-sm cursor-pointer transition ${
                               isSelected
-                                ? "bg-indigo-50 border-indigo-500 text-indigo-900 font-medium shadow-sm"
+                                ? "bg-blue-50 border-blue-500 text-blue-900 font-medium shadow-sm"
                                 : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
                             }`}
                           >
@@ -196,7 +196,7 @@ export const SkillQuizModal: React.FC<SkillQuizModalProps> = ({
                               name={q.id}
                               checked={isSelected}
                               onChange={() => handleSelectOption(q.id, optIdx)}
-                              className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                              className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                             />
                             <span>{opt}</span>
                           </label>
@@ -226,7 +226,7 @@ export const SkillQuizModal: React.FC<SkillQuizModalProps> = ({
               <button
                 disabled={!canSubmit || submitting}
                 onClick={handleSubmit}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 {submitting ? "Evaluating..." : "Submit Answers"}
               </button>

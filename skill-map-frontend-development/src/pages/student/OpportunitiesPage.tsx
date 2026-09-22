@@ -62,7 +62,7 @@ export default function OpportunitiesPage() {
               onClick={() => setFilterType(t)}
               className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${
                 filterType === t
-                  ? "bg-indigo-600 text-white shadow-sm"
+                  ? "bg-blue-600 text-white shadow-sm"
                   : "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               }`}
             >
@@ -83,7 +83,7 @@ export default function OpportunitiesPage() {
           return (
             <Card
               key={opp.id}
-              className="flex flex-col justify-between transition hover:border-indigo-300 hover:shadow-md"
+              className="flex flex-col justify-between transition hover:border-blue-300 hover:shadow-md"
             >
               <CardBody className="p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -93,7 +93,7 @@ export default function OpportunitiesPage() {
                     </span>
                     <div>
                       <h3 className="text-base font-bold text-slate-900">{opp.title}</h3>
-                      <p className="text-xs font-semibold text-indigo-600">{opp.company}</p>
+                      <p className="text-xs font-semibold text-blue-600">{opp.company}</p>
                     </div>
                   </div>
 

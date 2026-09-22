@@ -234,6 +234,49 @@ def compute_weighted_job_match(
     return overall_score, matched_skills, partial_skills, missing_skills, all_gaps, explanation
 
 
+def build_job_required_skills_payload(job_data: dict) -> List[dict]:
+    """
+    Canonical, single-source-of-truth conversion of a job document into the
+    required-skills payload consumed by compute_weighted_job_match().
+
+    Combines:
+      - required_skills: full weight, as configured by the recruiter.
+      - preferred_skills: folded in at a reduced weight (0.5) using the job's
+        minimum_proficiency (default 3.0) as their required proficiency, so a
+        candidate gets partial credit for nice-to-have skills without them
+        outweighing hard requirements.
+
+    IMPORTANT: This must be the ONLY place job-skill requirements are assembled
+    for matching. Both the student-facing application flow (applications.py)
+    and the recruiter-facing candidate ranking (recruiter.py) call this so a
+    student and a recruiter always see an identical match score for the same
+    job/candidate pair - there is no second, competing scoring formula.
+    """
+    payload: List[dict] = []
+
+    required = job_data.get("required_skills") or job_data.get("requiredSkills") or []
+    for item in required:
+        if isinstance(item, str):
+            payload.append({"name": item, "required_proficiency": 3.0, "weight": 1.0})
+        elif isinstance(item, dict):
+            payload.append(item)
+        else:
+            payload.append({
+                "name": getattr(item, "name", str(item)),
+                "required_proficiency": getattr(item, "required_proficiency", 3.0),
+                "weight": getattr(item, "weight", 1.0),
+            })
+
+    min_prof = float(job_data.get("minimum_proficiency") or job_data.get("minimumProficiency") or 3.0)
+    preferred = job_data.get("preferred_skills") or job_data.get("preferredSkills") or []
+    existing_names = {str(p.get("name", "")).strip().lower() for p in payload if isinstance(p, dict)}
+    for pref_name in preferred:
+        if isinstance(pref_name, str) and pref_name.strip() and pref_name.strip().lower() not in existing_names:
+            payload.append({"name": pref_name.strip(), "required_proficiency": min_prof, "weight": 0.5})
+
+    return payload
+
+
 @router.get("/job/{job_id}", response_model=JobMatchAnalysisResponse, summary="Analyze student skill gap for a specific job")
 async def analyze_job_match(
     job_id: str,
@@ -254,7 +297,7 @@ async def analyze_job_match(
             detail=f"Job with ID '{job_id}' not found",
         )
     job_data = job_doc.to_dict() or {}
-    required_skills = job_data.get("required_skills") or job_data.get("requiredSkills") or []
+    required_skills = build_job_required_skills_payload(job_data)
 
     # 2. Fetch student's real skills from users/{uid}/skills
     skills_docs = db.collection("users").document(current_user.uid).collection("skills").stream()

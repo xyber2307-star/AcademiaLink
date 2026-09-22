@@ -59,9 +59,9 @@ export default function SkillGapPage() {
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-5 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5">
+          <div className="flex items-center gap-5 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
             <ProgressRing value={profile.careerReadiness} size={104} stroke={9} sub="Readiness" />
-            <div><p className="text-sm font-semibold text-slate-900">{roleLabel}</p><p className="mt-1 max-w-[180px] text-xs text-slate-600">Reach <span className="font-semibold text-indigo-700">80%</span> to be placement-ready. Closing your 2 high-priority gaps adds ~+11%.</p></div>
+            <div><p className="text-sm font-semibold text-slate-900">{roleLabel}</p><p className="mt-1 max-w-[180px] text-xs text-slate-600">Reach <span className="font-semibold text-blue-700">80%</span> to be placement-ready. Closing your 2 high-priority gaps adds ~+11%.</p></div>
           </div>
         </CardBody>
       </Card>
@@ -70,7 +70,7 @@ export default function SkillGapPage() {
         <StatCard label="High priority gaps" value={high} icon={<Flame className="h-5 w-5" />} accent="rose" hint="Address these first" />
         <StatCard label="Total gaps" value={gaps.length} icon={<AlertTriangle className="h-5 w-5" />} accent="amber" hint="Below role benchmark" />
         <StatCard label="Gaps closed" value={3} icon={<CheckCircle2 className="h-5 w-5" />} accent="emerald" delta={50} hint="last 90 days" />
-        <StatCard label="Projected readiness" value="79%" icon={<TrendingUp className="h-5 w-5" />} accent="indigo" hint="if current plan completed" />
+        <StatCard label="Projected readiness" value="79%" icon={<TrendingUp className="h-5 w-5" />} accent="blue" hint="if current plan completed" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-5">
@@ -88,7 +88,7 @@ export default function SkillGapPage() {
       <Card>
         <CardHeader title="Detailed gap report" subtitle={`${filtered.length} of ${gaps.length} skills`} action={
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search skill" className="h-9 w-40 rounded-lg border border-slate-200 pl-9 pr-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 sm:w-52" /></div>
+            <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search skill" className="h-9 w-40 rounded-lg border border-slate-200 pl-9 pr-3 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 sm:w-52" /></div>
             <div className="flex rounded-lg bg-slate-100 p-0.5">{(["All", "High", "Medium", "Low"] as const).map((p) => <button key={p} onClick={() => setPriority(p)} className={cn("rounded-md px-2.5 py-1 text-xs font-medium", priority === p ? "bg-white text-slate-900 shadow-sm" : "text-slate-600")}>{p}</button>)}</div>
           </div>
         } />
@@ -110,7 +110,7 @@ export default function SkillGapPage() {
                   <td className="px-5 py-3.5"><span className="font-bold text-rose-600">-{g.gap}</span></td>
                   <td className="px-5 py-3.5"><span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset", priorityColor[g.priority])}>{g.priority}</span></td>
                   <td className="px-5 py-3.5"><div className="flex items-center gap-2"><ProgressBar value={g.demand} size="sm" className="w-16" barClassName="bg-sky-500" /><span className="text-xs text-slate-600">{g.demand}% roles</span></div></td>
-                  <td className="px-5 py-3.5"><Link to="/student/learning" className="inline-flex items-center gap-1 text-indigo-600 hover:underline"><BookOpen className="h-3.5 w-3.5" />{g.recommendedCourse}</Link></td>
+                  <td className="px-5 py-3.5"><Link to="/student/learning" className="inline-flex items-center gap-1 text-blue-600 hover:underline"><BookOpen className="h-3.5 w-3.5" />{g.recommendedCourse}</Link></td>
                 </tr>
               ))}
               {filtered.length === 0 && <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-500">No skills match your filters.</td></tr>}
@@ -127,7 +127,7 @@ export default function SkillGapPage() {
             <ol className="space-y-4">
               {gaps.filter((g) => g.priority !== "Low").slice(0, 4).map((g, i) => (
                 <li key={g.skill} className="flex gap-4 rounded-xl border border-slate-100 p-4">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">{i + 1}</span>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">{i + 1}</span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold text-slate-800">Close the {g.skill} gap</p><Badge tone={g.priority === "High" ? "rose" : "amber"}>{g.priority} · Weeks {i * 3 + 1}–{i * 3 + 3}</Badge></div>
                     <p className="mt-1 text-xs text-slate-500">Complete <span className="font-medium text-slate-700">{g.recommendedCourse}</span>, then submit one project as evidence for faculty verification. Expected uplift: <span className="font-semibold text-emerald-600">+{Math.round(g.gap * 0.7)} pts</span>.</p>
@@ -137,11 +137,11 @@ export default function SkillGapPage() {
             </ol>
           </CardBody>
         </Card>
-        <Card className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white">
+        <Card className="bg-gradient-to-br from-slate-900 to-blue-950 text-white">
           <CardBody className="pt-5">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10"><Target className="h-5 w-5" /></span>
             <h3 className="mt-4 text-lg font-bold">Skills you already exceed</h3>
-            <p className="mt-1 text-sm text-indigo-200">Leverage these strengths in interviews and your portfolio.</p>
+            <p className="mt-1 text-sm text-blue-200">Leverage these strengths in interviews and your portfolio.</p>
             <ul className="mt-4 space-y-2.5">
               {skills.filter((s) => s.score >= s.required).map((s) => (
                 <li key={s.id} className="flex items-center justify-between text-sm"><span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-400" />{s.name}</span><span className="font-semibold text-emerald-300">+{s.score - s.required}</span></li>

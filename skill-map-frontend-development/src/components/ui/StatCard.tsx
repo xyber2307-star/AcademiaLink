@@ -11,7 +11,7 @@ export function StatCard({
   delta,
   hint,
   subtitle,
-  accent = "indigo",
+  accent = "blue",
 }: {
   label?: string;
   title?: string;
@@ -20,15 +20,14 @@ export function StatCard({
   delta?: number;
   hint?: string;
   subtitle?: string;
-  accent?: "indigo" | "emerald" | "amber" | "rose" | "sky" | "violet" | "slate";
+  accent?: "blue" | "emerald" | "amber" | "rose" | "sky" | "slate";
 }) {
   const accents = {
-    indigo: "bg-indigo-50 text-indigo-600",
+    blue: "bg-blue-50 text-blue-600",
     emerald: "bg-emerald-50 text-emerald-600",
     amber: "bg-amber-50 text-amber-600",
     rose: "bg-rose-50 text-rose-600",
     sky: "bg-sky-50 text-sky-600",
-    violet: "bg-violet-50 text-violet-600",
     slate: "bg-slate-100 text-slate-600",
   };
 
@@ -37,7 +36,12 @@ export function StatCard({
 
   const renderIcon = () => {
     if (!icon) return null;
-    if (typeof icon === "function") {
+    // Already-created elements (e.g. icon={<Star />}) have .type/.props and render as-is.
+    // Component types - plain functions, or lucide-react icons which are React.forwardRef
+    // objects (typeof "object", shaped {$$typeof, render}) - need to be instantiated as JSX,
+    // otherwise React throws "Objects are not valid as a React child".
+    const isElement = typeof icon === "object" && icon !== null && "type" in (icon as object) && "props" in (icon as object);
+    if (!isElement && (typeof icon === "function" || typeof icon === "object")) {
       const IconComponent = icon as ComponentType<{ className?: string }>;
       return <IconComponent className="h-5 w-5" />;
     }
@@ -48,7 +52,7 @@ export function StatCard({
     <Card className="p-5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{displayLabel}</p>
+          <p className="text-xs font-medium tracking-wide text-slate-500">{displayLabel}</p>
           <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
         </div>
         <span className={cn("flex h-10 w-10 items-center justify-center rounded-xl", accents[accent])}>

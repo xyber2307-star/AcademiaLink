@@ -1,11 +1,14 @@
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   updateProfile,
   signOut,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import type { User, UserRole } from "../types";
-import { apiRequest, API_BASE_URL } from "./api";
+import { apiRequest } from "./api";
 import { auth } from "./firebase";
 
 const STORAGE_KEY = "skillmap.auth";
@@ -62,16 +65,20 @@ export const authService = {
       await updateProfile(fbUser, { displayName: payload.name });
     }
 
-    // 2. Initialize and verify profile on FastAPI backend (PUT /api/users/me)
+    // 2. Finalize the chosen role/name/institution on the FastAPI backend. This is a
+    // dedicated one-time endpoint (PUT /api/users/me/register), not the general-purpose
+    // PUT /api/users/me - that endpoint deliberately has no `role` field at all, so a
+    // student can never PATCH their own way into a different role after signup.
     const profile = await apiRequest<{
       uid: string;
       email: string;
       name: string;
       role: UserRole;
-    }>("/users/me", {
+    }>("/users/me/register", {
       method: "PUT",
       body: JSON.stringify({
         name: payload.name,
+        role: payload.role,
         institution: payload.institution || "",
       }),
     });
@@ -86,6 +93,43 @@ export const authService = {
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     return user;
+  },
+
+  async loginWithGoogle(): Promise<User> {
+    // 1. Real Firebase Authentication via Google popup
+    const userCredential = await signInWithPopup(auth, new GoogleAuthProvider());
+    const fbUser = userCredential.user;
+
+    // 2. Fetch (or, on first sign-in, self-provision) the backend profile via Bearer token.
+    // get_current_user() on the backend creates a default "student" profile the first
+    // time a verified Firebase UID has no matching Firestore document, so this works
+    // for both returning Google users and brand-new ones without a separate register step.
+    const profile = await apiRequest<{
+      uid: string;
+      email: string;
+      name: string;
+      role: UserRole;
+      avatar?: string;
+      verified?: boolean;
+    }>("/users/me");
+
+    const user: User = {
+      id: profile.uid || fbUser.uid,
+      name: profile.name || fbUser.displayName || (fbUser.email || "").split("@")[0],
+      email: profile.email || fbUser.email || "",
+      role: profile.role || "student",
+      avatar: profile.avatar || fbUser.photoURL || "https://i.pravatar.cc/150?img=47",
+      verified: true,
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    return user;
+  },
+
+  async resetPassword(email: string): Promise<void> {
+    // Real Firebase Auth password reset - sends an email with a reset link, same
+    // client-side flow as login/register (no backend endpoint involved).
+    await sendPasswordResetEmail(auth, email);
   },
 
   async verifyEmail(_code: string): Promise<User | null> {

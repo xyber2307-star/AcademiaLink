@@ -15,6 +15,7 @@ from app.models import (
     UserProfileResponse,
 )
 from app.routes.notifications import create_notification
+from app.routes.matching import compute_weighted_job_match, build_job_required_skills_payload
 
 logger = logging.getLogger("academialink.applications")
 
@@ -22,31 +23,16 @@ router = APIRouter(prefix="/applications", tags=["Opportunities & Application Tr
 
 
 def _calculate_student_job_match(student_skills: dict, job_data: dict) -> float:
-    """Calculates weighted match score between student skills and job requirements."""
-    req_skills = job_data.get("required_skills", [])
-    pref_skills = job_data.get("preferred_skills", [])
-    min_prof = float(job_data.get("minimum_proficiency", 3.0))
-
-    total_weights = len(req_skills) * 1.0 + len(pref_skills) * 0.5
-    if total_weights <= 0:
-        return 100.0
-
-    earned_weights = 0.0
-    for req in req_skills:
-        p = student_skills.get(req.strip().lower(), 0.0)
-        if p >= min_prof:
-            earned_weights += 1.0
-        elif p > 0:
-            earned_weights += (p / min_prof)
-
-    for pref in pref_skills:
-        p = student_skills.get(pref.strip().lower(), 0.0)
-        if p >= min_prof:
-            earned_weights += 0.5
-        elif p > 0:
-            earned_weights += 0.5 * (p / min_prof)
-
-    return round((earned_weights / total_weights) * 100, 1)
+    """
+    Calculates the weighted match score between student skills and job requirements.
+    Delegates to the single canonical deterministic algorithm (compute_weighted_job_match)
+    so the score a student sees on their own application is identical to the score a
+    recruiter sees when ranking that same student as a candidate - there is intentionally
+    no second scoring formula here.
+    """
+    required_skills_payload = build_job_required_skills_payload(job_data)
+    overall_score, *_ = compute_weighted_job_match(student_skills, required_skills_payload)
+    return overall_score
 
 
 @router.post("", response_model=JobApplicationResponse, summary="Submit application for a job")

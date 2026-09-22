@@ -106,7 +106,7 @@ export const StudentAIChatPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-md">
             <Bot className="w-6 h-6" />
           </div>
           <div>
@@ -129,7 +129,7 @@ export const StudentAIChatPage: React.FC = () => {
           <select
             value={selectedJobId}
             onChange={(e) => setSelectedJobId(e.target.value)}
-            className="text-xs font-medium border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="text-xs font-medium border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">No target job selected (General Advice)</option>
             {jobs.map((j) => (
@@ -151,14 +151,14 @@ export const StudentAIChatPage: React.FC = () => {
               className={`flex gap-3 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
             >
               {msg.sender === "assistant" && (
-                <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0 mt-1">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 mt-1">
                   <Bot className="w-4 h-4" />
                 </div>
               )}
               <div
                 className={`max-w-2xl rounded-2xl p-4 ${
                   msg.sender === "user"
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-blue-600 text-white"
                     : "bg-gray-50 text-gray-800 border border-gray-100"
                 }`}
               >
@@ -168,7 +168,7 @@ export const StudentAIChatPage: React.FC = () => {
                 {msg.groundedData && (
                   <div className="mt-3 pt-3 border-t border-gray-200/60 flex flex-wrap gap-2 text-xs text-gray-500">
                     <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-gray-200">
-                      <Layers className="w-3 h-3 text-indigo-500" />
+                      <Layers className="w-3 h-3 text-blue-500" />
                       {msg.groundedData.skills_count ?? 0} Skills Grounded
                     </span>
                     <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-gray-200">
@@ -190,7 +190,7 @@ export const StudentAIChatPage: React.FC = () => {
 
                 <div
                   className={`text-[10px] mt-1.5 ${
-                    msg.sender === "user" ? "text-indigo-200 text-right" : "text-gray-400"
+                    msg.sender === "user" ? "text-blue-200 text-right" : "text-gray-400"
                   }`}
                 >
                   {msg.timestamp}
@@ -201,13 +201,13 @@ export const StudentAIChatPage: React.FC = () => {
 
           {loading && (
             <div className="flex gap-3 justify-start">
-              <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
                 <Bot className="w-4 h-4 animate-spin" />
               </div>
               <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce"></span>
-                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce delay-100"></span>
-                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce delay-200"></span>
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce"></span>
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce delay-100"></span>
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce delay-200"></span>
                 <span className="text-xs text-gray-500 ml-2">Consulting verified student records...</span>
               </div>
             </div>
@@ -222,9 +222,9 @@ export const StudentAIChatPage: React.FC = () => {
               key={idx}
               disabled={loading}
               onClick={() => handleSend(prompt)}
-              className="text-xs px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-700 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition disabled:opacity-50"
+              className="text-xs px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition disabled:opacity-50"
             >
-              <Sparkles className="w-3 h-3 inline mr-1 text-indigo-500" />
+              <Sparkles className="w-3 h-3 inline mr-1 text-blue-500" />
               {prompt}
             </button>
           ))}
@@ -243,12 +243,12 @@ export const StudentAIChatPage: React.FC = () => {
                 : "Ask about your strongest skills, learning paths, or career recommendations..."
             }
             disabled={loading}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           />
           <button
             onClick={() => handleSend()}
             disabled={!inputMessage.trim() || loading}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-sm transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium text-sm transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             <Send className="w-4 h-4" />
             Send

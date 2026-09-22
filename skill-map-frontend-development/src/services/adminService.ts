@@ -17,7 +17,21 @@ export interface AdminUserSummary {
   };
 }
 
+export interface InstitutionVerificationStats {
+  totalUsersWithInstitution: number;
+  verifiedCount: number;
+  notVerifiedCount: number;
+  sourceUnavailableCount: number;
+  distinctVerifiedInstitutions: number;
+  verificationSource?: string;
+  computedAt: string;
+}
+
 export const adminService = {
+  async getInstitutionVerificationStats(): Promise<InstitutionVerificationStats> {
+    return apiRequest<InstitutionVerificationStats>("/admin/institution-verification-stats");
+  },
+
   async listUsers(roleFilter?: string, limit = 50): Promise<AdminUserSummary[]> {
     const query = roleFilter ? `?role_filter=${roleFilter}&limit=${limit}` : `?limit=${limit}`;
     return apiRequest<AdminUserSummary[]>(`/admin/users${query}`);

@@ -46,7 +46,7 @@ function describeAuthError(err: unknown): string {
 }
 
 export default function LoginPage() {
-  const { login, loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle, resetPassword } = useAuth();
   const navigate = useNavigate();
   const [role, setRole] = useState<UserRole>("student");
   const [email, setEmail] = useState("");
@@ -54,7 +54,9 @@ export default function LoginPage() {
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetMessage, setResetMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -70,6 +72,19 @@ export default function LoginPage() {
     try { const u = await loginWithGoogle(); navigate(`/${u.role}`); }
     catch (err) { setError(describeAuthError(err)); }
     finally { setGoogleLoading(false); }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) { setResetMessage({ type: "error", text: "Enter your email address above first, then click \"Forgot password?\"." }); return; }
+    setResetMessage(null); setResetLoading(true);
+    try {
+      await resetPassword(email);
+      setResetMessage({ type: "success", text: `Password reset email sent to ${email}. Check your inbox (and spam folder).` });
+    } catch (err) {
+      setResetMessage({ type: "error", text: describeAuthError(err) });
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   return (
@@ -96,8 +111,11 @@ export default function LoginPage() {
         </div>
         <div className="flex items-center justify-between text-sm">
           <label className="inline-flex items-center gap-2 text-slate-600"><input type="checkbox" defaultChecked className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" /> Remember me</label>
-          <a href="#" className="font-medium text-blue-600 hover:text-blue-700">Forgot password?</a>
+          <button type="button" onClick={handleForgotPassword} disabled={resetLoading} className="font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50">{resetLoading ? "Sending…" : "Forgot password?"}</button>
         </div>
+        {resetMessage && (
+          <p className={cn("rounded-xl px-3 py-2 text-sm", resetMessage.type === "success" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>{resetMessage.text}</p>
+        )}
         {error && <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={loading}>Sign in</Button>
       </form>

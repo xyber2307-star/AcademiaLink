@@ -5,6 +5,7 @@ import {
   GoogleAuthProvider,
   updateProfile,
   signOut,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import type { User, UserRole } from "../types";
 import { apiRequest } from "./api";
@@ -123,6 +124,12 @@ export const authService = {
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     return user;
+  },
+
+  async resetPassword(email: string): Promise<void> {
+    // Real Firebase Auth password reset - sends an email with a reset link, same
+    // client-side flow as login/register (no backend endpoint involved).
+    await sendPasswordResetEmail(auth, email);
   },
 
   async verifyEmail(_code: string): Promise<User | null> {
